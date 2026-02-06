@@ -140,64 +140,56 @@ public class HtmlReportGenerator {
     }
 
     private static String getCSS() {
-        return """
-            * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-            }
-            
-            body {
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: #333;
-                line-height: 1.6;
-                padding: 20px;
-            }
-            
-            .container {
-                max-width: 1400px;
-                margin: 0 auto;
-                background: white;
-                border-radius: 10px;
-                box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-                padding: 30px;
-            }
-            
-            h1 {
-                color: #667eea;
-                margin-bottom: 10px;
-                font-size: 2.5em;
-                border-bottom: 3px solid #667eea;
-                padding-bottom: 15px;
-            }
-            
-            h2 {
-                color: #764ba2;
-                margin-top: 30px;
-                margin-bottom: 15px;
-                font-size: 1.8em;
-            }
-            
-            h3 {
-                color: #667eea;
-                margin-top: 20px;
-                margin-bottom: 10px;
-            }
-            
-            .timestamp {
-                color: #666;
-                font-size: 0.9em;
-                margin-bottom: 20px;
-            }
-            
-            .summary {
-                margin-bottom: 40px;
-            }
-            
-            .signals-table {
-                width: 100%;
-                border-collapse: collapse;
+        return
+            "* {" +
+            "margin: 0;" +
+            "padding: 0;" +
+            "box-sizing: border-box;" +
+            "}" +
+            "body {" +
+            "font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;" +
+            "background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);" +
+            "color: #333;" +
+            "line-height: 1.6;" +
+            "padding: 20px;" +
+            "}" +
+            ".container {" +
+            "max-width: 1400px;" +
+            "margin: 0 auto;" +
+            "background: white;" +
+            "border-radius: 10px;" +
+            "box-shadow: 0 10px 30px rgba(0,0,0,0.3);" +
+            "padding: 30px;" +
+            "}" +
+            "h1 {" +
+            "color: #667eea;" +
+            "margin-bottom: 10px;" +
+            "font-size: 2.5em;" +
+            "border-bottom: 3px solid #667eea;" +
+            "padding-bottom: 15px;" +
+            "}" +
+            "h2 {" +
+            "color: #764ba2;" +
+            "margin-top: 30px;" +
+            "margin-bottom: 15px;" +
+            "font-size: 1.8em;" +
+            "}" +
+            "h3 {" +
+            "color: #667eea;" +
+            "margin-top: 20px;" +
+            "margin-bottom: 10px;" +
+            "}" +
+            ".timestamp {" +
+            "color: #666;" +
+            "font-size: 0.9em;" +
+            "margin-bottom: 20px;" +
+            "}" +
+            ".summary {" +
+            "margin-bottom: 40px;" +
+            "}" +
+            ".signals-table {" +
+            "width: 100%;" +
+            "border-collapse: collapse;";
                 margin-top: 15px;
                 box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             }
