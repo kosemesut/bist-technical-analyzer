@@ -13,7 +13,9 @@ jobs:
     runs-on: ubuntu-latest
     
     permissions:
-      contents: read
+      contents: write
+      pages: write
+      id-token: write
       
     steps:
       - name: Checkout repository
@@ -35,15 +37,16 @@ jobs:
         run: java -jar target/bist-technical-analyzer-1.0.0.jar
       
       - name: Prepare GitHub Pages content
+        if: always()
         run: |
           mkdir -p docs
-          if [ -f output/index.html ]; then
-            cp output/index.html docs/index.html
+          if [ -f output/report.html ]; then
+            cp output/report.html docs/index.html
           else
-            echo "<!DOCTYPE html><html><head><title>No Report</title></head><body><h1>No analysis report generated.</h1><p>Check build logs for errors.</p></body></html>" > docs/index.html
+            echo "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>BIST Analysis - No Report</title><style>body{font-family:Arial;margin:40px;background:#f5f5f5}h1{color:#667eea}</style></head><body><h1>BIST Technical Analysis</h1><p>⚠️ No analysis report generated in this run.</p><p>Check the workflow logs for details.</p></body></html>" > docs/index.html
           fi
           if [ -d output/charts ]; then
-            cp -r output/charts docs/
+            cp -r output/charts docs/ 2>/dev/null || true
           fi
       
       - name: Upload to GitHub Pages
@@ -55,11 +58,13 @@ jobs:
           retention-days: 30
       
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+        if: always()
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs
           cname: ''
+          force_orphan: true
       
       - name: Summary
         if: always()
