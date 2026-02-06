@@ -37,8 +37,14 @@ jobs:
       - name: Prepare GitHub Pages content
         run: |
           mkdir -p docs
-          cp output/index.html docs/index.html
-          cp -r output/charts docs/ || true
+          if [ -f output/index.html ]; then
+            cp output/index.html docs/index.html
+          else
+            echo "<!DOCTYPE html><html><head><title>No Report</title></head><body><h1>No analysis report generated.</h1><p>Check build logs for errors.</p></body></html>" > docs/index.html
+          fi
+          if [ -d output/charts ]; then
+            cp -r output/charts docs/
+          fi
       
       - name: Upload to GitHub Pages
         if: always()
