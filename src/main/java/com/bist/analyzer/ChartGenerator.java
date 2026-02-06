@@ -37,7 +37,7 @@ public class ChartGenerator {
         double[] closes = new double[data.size()];
         double[] highs = new double[data.size()];
         double[] lows = new double[data.size()];
-        long[] volumes = new long[data.size()];
+        double[] volumes = new double[data.size()];
 
         for (int i = 0; i < data.size(); i++) {
             StockData d = data.get(i);
@@ -150,6 +150,21 @@ public class ChartGenerator {
         // Save chart
         ChartUtils.saveChartAsPNG(new File(outputPath), chart, CHART_WIDTH, CHART_HEIGHT);
         System.out.println("Technical chart saved: " + outputPath);
+    }
+
+    /**
+     * Generic method to generate charts
+     */
+    public static void generateChart(String symbol, List<StockData> data, double[] indicator1, 
+                                    double[] indicator2, String outputDir, String chartType) throws IOException {
+        String fileName = outputDir + File.separator + symbol + "_" + chartType + ".png";
+        
+        if ("price".equals(chartType)) {
+            generateCandleChart(symbol, data, fileName);
+        } else if ("technical".equals(chartType)) {
+            generateTechnicalChart(symbol, data, indicator1, indicator2, new double[data.size()], 
+                                 new double[data.size()], fileName);
+        }
     }
 
     /**

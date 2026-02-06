@@ -140,267 +140,62 @@ public class HtmlReportGenerator {
     }
 
     private static String getCSS() {
-        return
-            "* {" +
-            "margin: 0;" +
-            "padding: 0;" +
-            "box-sizing: border-box;" +
-            "}" +
-            "body {" +
-            "font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;" +
-            "background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);" +
-            "color: #333;" +
-            "line-height: 1.6;" +
-            "padding: 20px;" +
-            "}" +
-            ".container {" +
-            "max-width: 1400px;" +
-            "margin: 0 auto;" +
-            "background: white;" +
-            "border-radius: 10px;" +
-            "box-shadow: 0 10px 30px rgba(0,0,0,0.3);" +
-            "padding: 30px;" +
-            "}" +
-            "h1 {" +
-            "color: #667eea;" +
-            "margin-bottom: 10px;" +
-            "font-size: 2.5em;" +
-            "border-bottom: 3px solid #667eea;" +
-            "padding-bottom: 15px;" +
-            "}" +
-            "h2 {" +
-            "color: #764ba2;" +
-            "margin-top: 30px;" +
-            "margin-bottom: 15px;" +
-            "font-size: 1.8em;" +
-            "}" +
-            "h3 {" +
-            "color: #667eea;" +
-            "margin-top: 20px;" +
-            "margin-bottom: 10px;" +
-            "}" +
-            ".timestamp {" +
-            "color: #666;" +
-            "font-size: 0.9em;" +
-            "margin-bottom: 20px;" +
-            "}" +
-            ".summary {" +
-            "margin-bottom: 40px;" +
-            "}" +
-            ".signals-table {" +
-            "width: 100%;" +
-            "border-collapse: collapse;";
-                margin-top: 15px;
-                box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            }
-            
-            .signals-table th {
-                background: #667eea;
-                color: white;
-                padding: 12px;
-                text-align: left;
-                font-weight: 600;
-            }
-            
-            .signals-table td {
-                padding: 12px;
-                border-bottom: 1px solid #eee;
-            }
-            
-            .signals-table tbody tr:hover {
-                background: #f9f9f9;
-            }
-            
-            .signal-badge {
-                display: inline-block;
-                padding: 6px 12px;
-                border-radius: 20px;
-                font-weight: 600;
-                font-size: 0.85em;
-                text-transform: uppercase;
-            }
-            
-            .signal-strong-buy {
-                background: #00c851;
-                color: white;
-            }
-            
-            .signal-buy {
-                background: #7cb342;
-                color: white;
-            }
-            
-            .signal-hold {
-                background: #ffb300;
-                color: white;
-            }
-            
-            .signal-sell {
-                background: #ff6b6b;
-                color: white;
-            }
-            
-            .signal-strong-sell {
-                background: #d50000;
-                color: white;
-            }
-            
-            .confidence-bar {
-                width: 100%;
-                height: 30px;
-                background: #eee;
-                border-radius: 15px;
-                position: relative;
-                overflow: hidden;
-            }
-            
-            .confidence-fill {
-                height: 100%;
-                background: linear-gradient(90deg, #667eea, #764ba2);
-                transition: width 0.3s ease;
-            }
-            
-            .confidence-text {
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                font-weight: 600;
-                color: #333;
-                font-size: 0.9em;
-            }
-            
-            .detailed {
-                margin-top: 40px;
-            }
-            
-            .stock-section {
-                background: #f9f9f9;
-                padding: 20px;
-                margin-bottom: 30px;
-                border-radius: 8px;
-                border-left: 4px solid #667eea;
-            }
-            
-            .stock-info {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-                gap: 15px;
-                margin-bottom: 20px;
-            }
-            
-            .info-item {
-                background: white;
-                padding: 10px;
-                border-radius: 5px;
-                border: 1px solid #ddd;
-            }
-            
-            .info-item .label {
-                display: block;
-                font-size: 0.85em;
-                color: #666;
-                margin-bottom: 5px;
-            }
-            
-            .info-item .value {
-                display: block;
-                font-size: 1.2em;
-                font-weight: 600;
-                color: #667eea;
-            }
-            
-            .charts {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-                gap: 20px;
-                margin-top: 20px;
-            }
-            
-            .chart-img {
-                max-width: 100%;
-                height: auto;
-                border-radius: 5px;
-                box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            }
-            
-            .legend {
-                background: #f0f4ff;
-                padding: 20px;
-                border-radius: 8px;
-                margin-top: 40px;
-            }
-            
-            .legend-items {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-                gap: 15px;
-                margin-top: 15px;
-            }
-            
-            .legend-item {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-            }
-            
-            .badge {
-                display: inline-block;
-                padding: 5px 10px;
-                border-radius: 15px;
-                font-weight: 600;
-                font-size: 0.8em;
-                color: white;
-                white-space: nowrap;
-            }
-            
-            .badge-strong-buy { background: #00c851; }
-            .badge-buy { background: #7cb342; }
-            .badge-hold { background: #ffb300; }
-            .badge-sell { background: #ff6b6b; }
-            .badge-strong-sell { background: #d50000; }
-            
-            footer {
-                margin-top: 40px;
-                padding-top: 20px;
-                border-top: 2px solid #eee;
-                text-align: center;
-                color: #666;
-                font-size: 0.9em;
-            }
-            
-            @media (max-width: 768px) {
-                .container {
-                    padding: 15px;
-                }
-                
-                h1 {
-                    font-size: 1.8em;
-                }
-                
-                .charts {
-                    grid-template-columns: 1fr;
-                }
-                
-                .signals-table {
-                    font-size: 0.9em;
-                }
-                
-                .signals-table td, .signals-table th {
-                    padding: 8px;
-                }
-            }
-        """;
+        return "* {margin: 0;padding: 0;box-sizing: border-box;} " +
+            "body {font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);color: #333;line-height: 1.6;padding: 20px;} " +
+            ".container {max-width: 1400px;margin: 0 auto;background: white;border-radius: 10px;box-shadow: 0 10px 30px rgba(0,0,0,0.3);padding: 30px;} " +
+            "h1 {color: #667eea;margin-bottom: 10px;font-size: 2.5em;border-bottom: 3px solid #667eea;padding-bottom: 15px;} " +
+            "h2 {color: #764ba2;margin-top: 30px;margin-bottom: 15px;font-size: 1.8em;} " +
+            "h3 {color: #667eea;margin-top: 20px;margin-bottom: 10px;} " +
+            ".timestamp {color: #666;font-size: 0.9em;margin-bottom: 20px;} " +
+            ".summary {margin-bottom: 40px;} " +
+            ".signals-table {width: 100%;border-collapse: collapse;margin-top: 15px;box-shadow: 0 2px 5px rgba(0,0,0,0.1);} " +
+            ".signals-table th {background: #667eea;color: white;padding: 12px;text-align: left;font-weight: 600;} " +
+            ".signals-table td {padding: 12px;border-bottom: 1px solid #eee;} " +
+            ".signals-table tbody tr:hover {background: #f9f9f9;} " +
+            ".signal-badge {display: inline-block;padding: 6px 12px;border-radius: 20px;font-weight: 600;font-size: 0.85em;text-transform: uppercase;} " +
+            ".signal-strong-buy {background: #00c851;color: white;} " +
+            ".signal-buy {background: #7cb342;color: white;} " +
+            ".signal-hold {background: #ffb300;color: white;} " +
+            ".signal-sell {background: #ff6b6b;color: white;} " +
+            ".signal-strong-sell {background: #d50000;color: white;} " +
+            ".confidence-bar {width: 100%;height: 30px;background: #eee;border-radius: 15px;position: relative;overflow: hidden;} " +
+            ".confidence-fill {height: 100%;background: linear-gradient(90deg, #667eea, #764ba2);transition: width 0.3s ease;} " +
+            ".confidence-text {position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);font-weight: 600;color: #333;font-size: 0.9em;} " +
+            ".detailed {margin-top: 40px;} " +
+            ".stock-section {background: #f9f9f9;padding: 20px;margin-bottom: 30px;border-radius: 8px;border-left: 4px solid #667eea;} " +
+            ".stock-info {display: grid;grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));gap: 15px;margin-bottom: 20px;} " +
+            ".info-item {background: white;padding: 10px;border-radius: 5px;border: 1px solid #ddd;} " +
+            ".info-item .label {display: block;font-size: 0.85em;color: #666;margin-bottom: 5px;} " +
+            ".info-item .value {display: block;font-size: 1.2em;font-weight: 600;color: #667eea;} " +
+            ".charts {display: grid;grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));gap: 20px;margin-top: 20px;} " +
+            ".chart-img {max-width: 100%;border-radius: 8px;box-shadow: 0 2px 8px rgba(0,0,0,0.1);} " +
+            ".badge {display: inline-block;padding: 5px 10px;border-radius: 15px;font-weight: 600;font-size: 0.8em;color: white;white-space: nowrap;} " +
+            ".badge-strong-buy {background: #00c851;} " +
+            ".badge-buy {background: #7cb342;} " +
+            ".badge-hold {background: #ffb300;} " +
+            ".badge-sell {background: #ff6b6b;} " +
+            ".badge-strong-sell {background: #d50000;} " +
+            ".legend {background: #f0f4ff;padding: 20px;border-radius: 8px;margin-top: 40px;} " +
+            ".legend-items {display: grid;grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));gap: 15px;margin-top: 15px;} " +
+            ".legend-item {display: flex;align-items: center;gap: 10px;} " +
+            "footer {margin-top: 40px;padding-top: 20px;border-top: 2px solid #eee;text-align: center;color: #666;font-size: 0.9em;} " +
+            "@media (max-width: 768px) {.container {padding: 15px;} h1 {font-size: 1.8em;} .charts {grid-template-columns: 1fr;} .signals-table {font-size: 0.9em;} .signals-table td, .signals-table th {padding: 8px;}} ";
     }
 
     private static int getSignalValue(String signal) {
-        return switch (signal) {
-            case "STRONG_BUY" -> 5;
-            case "BUY" -> 4;
-            case "HOLD" -> 3;
-            case "SELL" -> 2;
-            case "STRONG_SELL" -> 1;
-            default -> 0;
-        };
+        switch (signal) {
+            case "STRONG_BUY":
+                return 5;
+            case "BUY":
+                return 4;
+            case "HOLD":
+                return 3;
+            case "SELL":
+                return 2;
+            case "STRONG_SELL":
+                return 1;
+            default:
+                return 0;
+        }
     }
 }

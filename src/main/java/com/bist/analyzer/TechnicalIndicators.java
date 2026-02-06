@@ -5,6 +5,26 @@ import java.util.List;
 public class TechnicalIndicators {
 
     /**
+     * Calculate Simple Moving Average from double array
+     */
+    public static double[] calculateSMAFromArray(double[] values, int period) {
+        double[] sma = new double[values.length];
+        
+        for (int i = 0; i < values.length; i++) {
+            if (i < period - 1 || Double.isNaN(values[i])) {
+                sma[i] = Double.NaN;
+            } else {
+                double sum = 0;
+                for (int j = i - period + 1; j <= i; j++) {
+                    sum += values[j];
+                }
+                sma[i] = sum / period;
+            }
+        }
+        return sma;
+    }
+
+    /**
      * Calculate Simple Moving Average
      */
     public static double[] calculateSMA(List<StockData> data, int period) {
@@ -120,7 +140,7 @@ public class TechnicalIndicators {
             }
         }
         
-        result.signalLine = calculateSMA(convertToList(data, result.macdLine), signal);
+        result.signalLine = calculateSMAFromArray(result.macdLine, signal);
         
         result.histogram = new double[data.size()];
         for (int i = 0; i < data.size(); i++) {
