@@ -82,6 +82,29 @@
             yaxis: 'y'
         };
 
+        var signalLine = [];
+        for (let i = 0; i < buyDates.length; i++) {
+            signalLine.push({date: buyDates[i], price: buyPrices[i], type: 'BUY'});
+        }
+        for (let i = 0; i < sellDates.length; i++) {
+            signalLine.push({date: sellDates[i], price: sellPrices[i], type: 'SELL'});
+        }
+        signalLine.sort((a, b) => new Date(a.date) - new Date(b.date));
+        var signalLineX = signalLine.map(p => p.date);
+        var signalLineY = signalLine.map(p => p.price);
+
+        var traceSignalLine = {
+            x: signalLineX,
+            y: signalLineY,
+            type: 'scatter',
+            mode: 'lines+markers',
+            name: 'Sinyal Fiyatı (Turuncu)',
+            line: { color: '#F97316', width: 2, dash: 'solid' },
+            marker: { color: '#F97316', size: 6 },
+            hovertemplate: '<b>%{x|%Y-%m-%d %H:%M}</b><br>Sinyal Fiyatı: %{y:.2f} TL<extra></extra>',
+            yaxis: 'y'
+        };
+
         var traceBuySignals = {
             x: buyDates,
             y: buyPrices,
@@ -196,7 +219,7 @@
         };
 
         // Render chart
-        var data = [tracePrice, traceSMA20, traceSMA50, traceEMA12, traceBuySignals, traceSellSignals, traceRSI, traceRSI70, traceRSI30];
+        var data = [tracePrice, traceSignalLine, traceSMA20, traceSMA50, traceEMA12, traceBuySignals, traceSellSignals, traceRSI, traceRSI70, traceRSI30];
         Plotly.newPlot('chart', data, layout, config);
     </script>
 </body>
