@@ -52,20 +52,17 @@ jobs:
         cp output/report.html docs/index.html || true
         cp -r output/charts docs/ || true
     
-    - name: 🌐 GitHub Pages'e deploy et
-      uses: peaceiris/actions-gh-pages@v3
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./docs
-        publish_branch: gh-pages
-        force_orphan: true
-        user_name: 'github-actions[bot]'
-        user_email: 'github-actions[bot]@users.noreply.github.com'
-        commit_message: 'Güncel BIST analiz raporu'
+    - name: 📤 docs klasörünü main branch'e push et
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add docs/
+        git commit -m "📊 Otomatik BIST analiz raporu - $(date -u +'%Y-%m-%d %H:%M:%S')" || echo "Değişiklik yok"
+        git push origin main
     
     - name: 🎉 Başarılı
       run: |
         echo "════════════════════════════════════════"
         echo "✅ Rapor başarıyla yayınlandı!"
-        echo "🔗 Rapor linki: https://kosemesut.github.io/bist-technical-analyzer/report.html"
+        echo "🔗 Rapor linki: https://kosemesut.github.io/bist-technical-analyzer/"
         echo "════════════════════════════════════════"
