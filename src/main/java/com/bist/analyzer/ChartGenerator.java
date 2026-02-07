@@ -46,14 +46,28 @@ public class ChartGenerator {
     
     // Helper class for signal information
     private static class SignalData {
-        public String type;   // BUY or SELL
-        public String time;   // HH:mm
+        public String type;      // AL, GÜÇLÜ_AL, SAT, GÜÇLÜ_SAT
+        public String time;      // HH:mm
+        public String reason;    // Full reason text
         public SignalGenerator.TradePoint source;  // Original signal
         
         public SignalData(String type, String time, SignalGenerator.TradePoint source) {
-            this.type = type;
-            this.time = time;
             this.source = source;
+            this.time = time;
+            this.reason = source.reason;
+            
+            // Parse signal type from reason to distinguish GÜÇLÜ vs normal
+            if (source.reason.contains("Güçlü AL")) {
+                this.type = "GÜÇLÜ_AL";
+            } else if (source.reason.contains("AL")) {
+                this.type = "AL";
+            } else if (source.reason.contains("Güçlü SAT")) {
+                this.type = "GÜÇLÜ_SAT";
+            } else if (source.reason.contains("SAT")) {
+                this.type = "SAT";
+            } else {
+                this.type = type;  // fallback
+            }
         }
     }
     
@@ -248,7 +262,8 @@ public class ChartGenerator {
         List<String> closingTimes = new ArrayList<>();
         List<Double> dailyChanges = new ArrayList<>();
         List<String> signals = new ArrayList<>();
-        List<String> signalTimes = new ArrayList<>();
+        List<String> dayNames = new ArrayList<>();
+        SimpleDateFormat dayNameFormat = new SimpleDateFormat("EEEE", new Locale("tr", "TR"));
         
         double prevClose = 0;
         for (DailyData daily : dailyMap.values()) {
@@ -258,6 +273,10 @@ public class ChartGenerator {
             dailyHighs.add(daily.high);
             dailyLows.add(daily.low);
             closingTimes.add(daily.closingTime);
+            
+            // Get day name (Pazartesi, Salı, vb)
+            String dayName = dayNameFormat.format(new Date(daily.timestamp));
+            dayNames.add(dayName);
             
             // Calculate daily change % (vs previous day's close)
             double change = 0;
@@ -271,14 +290,11 @@ public class ChartGenerator {
             
             // Get signal info if available for this day
             String signalText = "";
-            String signalTime = "";
             if (signalsByDay.containsKey(daily.date)) {
                 SignalData sig = signalsByDay.get(daily.date);
-                signalText = sig.type;
-                signalTime = sig.time;
+                signalText = sig.source.reason;
             }
             signals.add(signalText);
-            signalTimes.add(signalTime);
             
             prevClose = daily.close;
         }
@@ -373,11 +389,11 @@ public class ChartGenerator {
         }
         html.append("];\n\n");
         
-        // Signal times
-        html.append("        var signalTimes = [");
-        for (int i = 0; i < signalTimes.size(); i++) {
+        // Day names (Pazartesi, Salı, etc)
+        html.append("        var dayNames = [");
+        for (int i = 0; i < dayNames.size(); i++) {
             if (i > 0) html.append(", ");
-            html.append("'").append(signalTimes.get(i)).append("'");
+            html.append("'").append(dayNames.get(i)).append("'");
         }
         html.append("];\n\n");
         
@@ -467,9 +483,11 @@ public class ChartGenerator {
         html.append("];\n\n");
         
         // Build BUY/SELL signals from daily data
-        html.append("        // BUY/SELL signals\n");
-        html.append("        var buyDates = [], buyPrices = [], buyTexts = [];\n");
-        html.append("        var sellDates = [], sellPrices = [], sellTexts = [];\n");
+        html.append("        // BUY/SELL signals (4 types)\n");
+        html.append("        var alDates = [], alPrices = [], alTexts = [];\n");
+        html.append("        var strongAlDates = [], strongAlPrices = [], strongAlTexts = [];\n");
+        html.append("        var satDates = [], satPrices = [], satTexts = [];\n");
+        html.append("        var strongSatDates = [], strongSatPrices = [], strongSatTexts = [];\n");
         
         for (int i = 0; i < dailyDates.size(); i++) {
             String dailyDate = dailyDates.get(i);
@@ -479,17 +497,26 @@ public class ChartGenerator {
                 double open = dailyOpens.get(i);
                 double change = dailyChanges.get(i);
                 String closingTime = closingTimes.get(i);
-                // Build complete hover text with all 7 fields
-                String displayText = "<b>Tarih: "+dailyDate+"</b><br>Açılış: "+String.format(Locale.US, "%.2f", open)+" TL<br>Kapanış: "+String.format(Locale.US, "%.2f", price)+" TL<br>Günlük Değişim: "+String.format(Locale.US, "%.2f", change)+"%<br>Kapanış Saati: "+closingTime+"<br>Sinyal: "+sig.type+"<br>Sinyal Saati: "+sig.time;
+                String dayName = dayNames.get(i);
+                // Build complete hover text with all fields (removed redundant Sinyal Saati)
+                String displayText = "<b>Tarih: "+dailyDate+" ("+dayName+")</b><br>Açılış: "+String.format(Locale.US, "%.2f", open)+" TL<br>Kapanış: "+String.format(Locale.US, "%.2f", price)+" TL<br>Günlük Değişim: "+String.format(Locale.US, "%.2f", change)+"%<br>Kapanış Saati: "+closingTime+"<br>Sinyal: "+sig.reason;
                 
-                if (sig.type.equals("BUY")) {
-                    html.append("        buyDates.push('").append(dailyDate).append("');\n");
-                    html.append("        buyPrices.push(").append(String.format(Locale.US, "%.2f", price)).append(");\n");
-                    html.append("        buyTexts.push('").append(displayText).append("');\n");
-                } else if (sig.type.equals("SELL")) {
-                    html.append("        sellDates.push('").append(dailyDate).append("');\n");
-                    html.append("        sellPrices.push(").append(String.format(Locale.US, "%.2f", price)).append(");\n");
-                    html.append("        sellTexts.push('").append(displayText).append("');\n");
+                if (sig.type.equals("AL")) {
+                    html.append("        alDates.push('").append(dailyDate).append("');\n");
+                    html.append("        alPrices.push(").append(String.format(Locale.US, "%.2f", price)).append(");\n");
+                    html.append("        alTexts.push('").append(displayText).append("');\n");
+                } else if (sig.type.equals("GÜÇLÜ_AL")) {
+                    html.append("        strongAlDates.push('").append(dailyDate).append("');\n");
+                    html.append("        strongAlPrices.push(").append(String.format(Locale.US, "%.2f", price)).append(");\n");
+                    html.append("        strongAlTexts.push('").append(displayText).append("');\n");
+                } else if (sig.type.equals("SAT")) {
+                    html.append("        satDates.push('").append(dailyDate).append("');\n");
+                    html.append("        satPrices.push(").append(String.format(Locale.US, "%.2f", price)).append(");\n");
+                    html.append("        satTexts.push('").append(displayText).append("');\n");
+                } else if (sig.type.equals("GÜÇLÜ_SAT")) {
+                    html.append("        strongSatDates.push('").append(dailyDate).append("');\n");
+                    html.append("        strongSatPrices.push(").append(String.format(Locale.US, "%.2f", price)).append(");\n");
+                    html.append("        strongSatTexts.push('").append(displayText).append("');\n");
                 }
             }
         }
@@ -499,7 +526,7 @@ public class ChartGenerator {
         html.append("        // Build custom data for hover template\n");
         html.append("        var customdata = [];\n");
         html.append("        for (let i = 0; i < dates.length; i++) {\n");
-        html.append("            customdata.push([opens[i], dailyChanges[i], closingTimes[i], signalTypes[i], signalTimes[i]]);\n");
+        html.append("            customdata.push([opens[i], dailyChanges[i], closingTimes[i], signalTypes[i], dayNames[i]]);\n");
         html.append("        }\n\n");
         
         html.append("        // Price chart traces\n");
@@ -511,7 +538,7 @@ public class ChartGenerator {
         html.append("            mode: 'lines',\n");
         html.append("            name: 'Kapanış Fiyatı',\n");
         html.append("            line: { color: '#1a1a1a', width: 2 },\n");
-        html.append("            hovertemplate: '<b>Tarih: %{x}</b><br>Açılış: %{customdata[0]:.2f} TL<br>Kapanış: %{y:.2f} TL<br>Günlük Değişim: %{customdata[1]:.2f}%<br>Kapanış Saati: %{customdata[2]}<br>Sinyal: %{customdata[3]}<br>Sinyal Saati: %{customdata[4]}<extra></extra>',\n");
+        html.append("            hovertemplate: '<b>Tarih: %{x} (%{customdata[4]})</b><br>Açılış: %{customdata[0]:.2f} TL<br>Kapanış: %{y:.2f} TL<br>Günlük Değişim: %{customdata[1]:.2f}%<br>Kapanış Saati: %{customdata[2]}<br>Sinyal: %{customdata[3]}<extra></extra>',\n");
         html.append("            yaxis: 'y'\n");
         html.append("        };\n\n");
         
@@ -551,29 +578,55 @@ public class ChartGenerator {
         html.append("            yaxis: 'y'\n");
         html.append("        };\n\n");
         
-        // BUY signals
-        html.append("        var traceBuySignals = {\n");
-        html.append("            x: buyDates,\n");
-        html.append("            y: buyPrices,\n");
-        html.append("            text: buyTexts,\n");
+        // AL signals (open green)
+        html.append("        var traceAlSignals = {\n");
+        html.append("            x: alDates,\n");
+        html.append("            y: alPrices,\n");
+        html.append("            text: alTexts,\n");
         html.append("            type: 'scatter',\n");
         html.append("            mode: 'markers',\n");
         html.append("            name: 'AL Sinyali',\n");
-        html.append("            marker: { color: '#22C55E', size: 12, symbol: 'triangle-up', line: { color: '#fff', width: 2 } },\n");
-        html.append("            hovertemplate: '%{text}<br>Sinyal Fiyatı: %{y:.2f} TL<extra></extra>',\n");
+        html.append("            marker: { color: '#4ADE80', size: 12, symbol: 'triangle-up', line: { color: '#fff', width: 2 } },\n");
+        html.append("            hovertemplate: '%{text}<extra></extra>',\n");
         html.append("            yaxis: 'y'\n");
         html.append("        };\n\n");
         
-        // SELL signals
-        html.append("        var traceSellSignals = {\n");
-        html.append("            x: sellDates,\n");
-        html.append("            y: sellPrices,\n");
-        html.append("            text: sellTexts,\n");
+        // GÜÇLÜ AL signals (dark green)
+        html.append("        var traceStrongAlSignals = {\n");
+        html.append("            x: strongAlDates,\n");
+        html.append("            y: strongAlPrices,\n");
+        html.append("            text: strongAlTexts,\n");
+        html.append("            type: 'scatter',\n");
+        html.append("            mode: 'markers',\n");
+        html.append("            name: 'GÜÇLÜ AL Sinyali',\n");
+        html.append("            marker: { color: '#15803D', size: 13, symbol: 'triangle-up', line: { color: '#fff', width: 2 } },\n");
+        html.append("            hovertemplate: '%{text}<extra></extra>',\n");
+        html.append("            yaxis: 'y'\n");
+        html.append("        };\n\n");
+        
+        // SAT signals (open red)
+        html.append("        var traceSatSignals = {\n");
+        html.append("            x: satDates,\n");
+        html.append("            y: satPrices,\n");
+        html.append("            text: satTexts,\n");
         html.append("            type: 'scatter',\n");
         html.append("            mode: 'markers',\n");
         html.append("            name: 'SAT Sinyali',\n");
-        html.append("            marker: { color: '#EF4444', size: 12, symbol: 'triangle-down', line: { color: '#fff', width: 2 } },\n");
-        html.append("            hovertemplate: '%{text}<br>Sinyal Fiyatı: %{y:.2f} TL<extra></extra>',\n");
+        html.append("            marker: { color: '#FB7185', size: 12, symbol: 'triangle-down', line: { color: '#fff', width: 2 } },\n");
+        html.append("            hovertemplate: '%{text}<extra></extra>',\n");
+        html.append("            yaxis: 'y'\n");
+        html.append("        };\n\n");
+        
+        // GÜÇLÜ SAT signals (dark red)
+        html.append("        var traceStrongSatSignals = {\n");
+        html.append("            x: strongSatDates,\n");
+        html.append("            y: strongSatPrices,\n");
+        html.append("            text: strongSatTexts,\n");
+        html.append("            type: 'scatter',\n");
+        html.append("            mode: 'markers',\n");
+        html.append("            name: 'GÜÇLÜ SAT Sinyali',\n");
+        html.append("            marker: { color: '#991B1B', size: 13, symbol: 'triangle-down', line: { color: '#fff', width: 2 } },\n");
+        html.append("            hovertemplate: '%{text}<extra></extra>',\n");
         html.append("            yaxis: 'y'\n");
         html.append("        };\n\n");
         
@@ -587,7 +640,7 @@ public class ChartGenerator {
         html.append("            name: 'RSI(14)',\n");
         html.append("            line: { color: '#A855F7', width: 2 },\n");
         html.append("            hovertemplate: '<b>%{x}</b><br>RSI: %{y:.1f}<extra></extra>',\n");
-        html.append("            visible: false,\n");
+        html.append("            visible: true,\n");
         html.append("            yaxis: 'y2',\n");
         html.append("            xaxis: 'x'\n");
         html.append("        };\n\n");
@@ -625,7 +678,7 @@ public class ChartGenerator {
         html.append("        // Layout configuration\n");
         html.append("        var layout = {\n");
         html.append("            title: {\n");
-        html.append("                text: '").append(symbol).append(" - Son ").append(data.size()).append(" Günlük Teknik Analiz',\n");
+        html.append("                text: '").append(symbol).append(" - Teknik Analiz',\n");
         html.append("                font: { size: 18, color: '#1a1a1a' }\n");
         html.append("            },\n");
         html.append("            xaxis: {\n");
@@ -675,7 +728,7 @@ public class ChartGenerator {
         
         // Plot
         html.append("        // Render chart\n");
-        html.append("        var data = [tracePrice, traceSMA20, traceSMA50, traceEMA12, traceBuySignals, traceSellSignals, traceRSI, traceRSI70, traceRSI30];\n");
+        html.append("        var data = [tracePrice, traceSMA20, traceSMA50, traceEMA12, traceAlSignals, traceStrongAlSignals, traceSatSignals, traceStrongSatSignals, traceRSI, traceRSI70, traceRSI30];\n");
         html.append("        Plotly.newPlot('chart', data, layout, config);\n");
         
         html.append("    </script>\n");
