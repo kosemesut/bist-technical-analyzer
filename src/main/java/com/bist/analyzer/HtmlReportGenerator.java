@@ -6,7 +6,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.SimpleDateFormat;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.ZoneId;
 import java.util.*;
 
 public class HtmlReportGenerator {
@@ -18,7 +20,8 @@ public class HtmlReportGenerator {
                                       String outputPath) throws IOException {
         
         StringBuilder html = new StringBuilder();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        ZonedDateTime now = ZonedDateTime.now(ZoneId.of("Europe/Istanbul"));
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss z");
         
         html.append("<!DOCTYPE html>\n");
         html.append("<html lang=\"tr\">\n");
@@ -43,7 +46,7 @@ public class HtmlReportGenerator {
         
         html.append("<div class=\"container\" id=\"top\">\n");
         html.append("    <h1>BİST Teknik Analiz Raporu</h1>\n");
-        html.append("    <div class=\"timestamp\">Oluşturulma Tarihi: ").append(sdf.format(new Date())).append("</div>\n");
+        html.append("    <div class=\"timestamp\">Oluşturulma Tarihi: ").append(now.format(formatter)).append("</div>\n");
         
         // User Stocks Summary table
         if (!userSignals.isEmpty()) {
