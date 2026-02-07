@@ -171,10 +171,33 @@ public class ChartGenerator {
         
         // Prepare data arrays for Plotly (filtered to display range)
         html.append("        // Data preparation\n");
+        SimpleDateFormat dateOnlyFormat = new SimpleDateFormat("yyyy-MM-dd");
+        SimpleDateFormat timeOnlyFormat = new SimpleDateFormat("HH:mm");
+        
         html.append("        var dates = [");
         for (int i = startIndex; i < data.size(); i++) {
             if (i > startIndex) html.append(", ");
-            html.append("'").append(DATE_FORMAT.format(new Date(data.get(i).getTimestamp()))).append("'");
+            html.append("'").append(dateOnlyFormat.format(new Date(data.get(i).getTimestamp()))).append("'");
+        }
+        html.append("]\n\n");
+        
+        // Display text for prices (date + time)
+        html.append("        var priceText = [");
+        for (int i = startIndex; i < data.size(); i++) {
+            if (i > startIndex) html.append(", ");
+            String dateStr = dateOnlyFormat.format(new Date(data.get(i).getTimestamp()));
+            String timeStr = timeOnlyFormat.format(new Date(data.get(i).getTimestamp()));
+            html.append("'").append(dateStr).append("\\nSaat: ").append(timeStr).append("'");
+        }
+        html.append("]\n\n");
+        
+        // Display text for signals (date + signal time)
+        html.append("        var signalText = [");
+        for (int i = startIndex; i < data.size(); i++) {
+            if (i > startIndex) html.append(", ");
+            String dateStr = dateOnlyFormat.format(new Date(data.get(i).getTimestamp()));
+            String timeStr = timeOnlyFormat.format(new Date(data.get(i).getTimestamp()));
+            html.append("'").append(dateStr).append("\\nSinyal Saati: ").append(timeStr).append("'");
         }
         html.append("]\n\n");
         
@@ -192,12 +215,13 @@ public class ChartGenerator {
             double open = data.get(i).getOpen();
             double close = data.get(i).getClose();
             double dailyChange = 0;
-            // Only calculate if open is valid and non-zero
+            // Calculate daily change if open is valid and non-zero
             if (!Double.isNaN(open) && !Double.isNaN(close) && open > 0) {
                 dailyChange = (close - open) / open * 100;
-            } else if (!Double.isNaN(close) && open > 0) {
-                // Use previous close as reference if open is invalid
-                dailyChange = (close - open) / open * 100;
+            }
+            // Ensure we don't have NaN or Infinity
+            if (Double.isNaN(dailyChange) || Double.isInfinite(dailyChange)) {
+                dailyChange = 0.0;
             }
             html.append(String.format(Locale.US, "%.2f", dailyChange));
         }
@@ -255,11 +279,16 @@ public class ChartGenerator {
         html.append("        var buyDates = [], buyPrices = [], buyTexts = [];\n");
         html.append("        var sellDates = [], sellPrices = [], sellTexts = [];\n");
         
+        SimpleDateFormat dateOnlyFormat2 = new SimpleDateFormat("yyyy-MM-dd");
+        SimpleDateFormat timeOnlyFormat2 = new SimpleDateFormat("HH:mm");
+        
         for (SignalGenerator.TradePoint signal : tradeSignals) {
             // Skip signals outside display range
             if (signal.index < startIndex) continue;
             
             String date = DATE_FORMAT.format(new Date(data.get(signal.index).getTimestamp()));
+            String dateOnly = dateOnlyFormat2.format(new Date(data.get(signal.index).getTimestamp()));
+            String timeOnly = timeOnlyFormat2.format(new Date(data.get(signal.index).getTimestamp()));
             double price = signal.price;
             // Sadece kısa sinyal etiketi (ör: SAT (%67) veya Güçlü AL (%82))
             String shortLabel = "";
@@ -268,14 +297,17 @@ public class ChartGenerator {
             else if (signal.reason.contains("Güçlü SAT")) shortLabel = "Güçlü SAT (%82)";
             else if (signal.reason.contains("SAT")) shortLabel = "SAT (%67)";
             else shortLabel = signal.reason.replace("'", "\\'");
+            
+            String displayText = "<b>" + dateOnly + "</b>\\nSaat: " + timeOnly + "\\n" + shortLabel;
+            
             if (signal.type.equals("BUY")) {
                 html.append("        buyDates.push('").append(date).append("');\n");
                 html.append("        buyPrices.push(").append(String.format(Locale.US, "%.2f", price)).append(");\n");
-                html.append("        buyTexts.push('").append(shortLabel).append("');\n");
+                html.append("        buyTexts.push('").append(displayText).append("');\n");
             } else if (signal.type.equals("SELL")) {
                 html.append("        sellDates.push('").append(date).append("');\n");
                 html.append("        sellPrices.push(").append(String.format(Locale.US, "%.2f", price)).append(");\n");
-                html.append("        sellTexts.push('").append(shortLabel).append("');\n");
+                html.append("        sellTexts.push('").append(displayText).append("');\n");
             }
         }
         html.append("\n");
@@ -285,12 +317,13 @@ public class ChartGenerator {
         html.append("        var tracePrice = {\n");
         html.append("            x: dates,\n");
         html.append("            y: prices,\n");
+        html.append("            text: priceText,\n");
         html.append("            customdata: dailyChanges,\n");
         html.append("            type: 'scatter',\n");
         html.append("            mode: 'lines',\n");
         html.append("            name: 'Kapanış Fiyatı',\n");
         html.append("            line: { color: '#1a1a1a', width: 2 },\n");
-        html.append("            hovertemplate: '<b>%{x|%Y-%m-%d %H:%M}</b><br>Fiyat: %{y:.2f} TL<br>Günlük Değişim: %{customdata:.2f}%<extra></extra>',\n");
+        html.append("            hovertemplate: '<b>%{text}</b><br>Fiyat: %{y:.2f} TL<br>Günlük Değişim: %{customdata:.2f}%<extra></extra>',\n");
         html.append("            yaxis: 'y'\n");
         html.append("        };\n\n");
         
@@ -337,18 +370,23 @@ public class ChartGenerator {
         html.append("        }\n");
         html.append("        signalLine.sort((a, b) => new Date(a.date) - new Date(b.date));\n");
         html.append("        var signalLineX = signalLine.map(p => p.date);\n");
-        html.append("        var signalLineY = signalLine.map(p => p.price);\n\n");
+        html.append("        var signalLineY = signalLine.map(p => p.price);\n");
+        html.append("        var signalLineText = signalLine.map(p => {\n");
+        html.append("            var parts = p.date.split(' ');\n");
+        html.append("            return '<b>' + parts[0] + '</b>' + '\\nSinyal Saati: ' + parts[1];\n");
+        html.append("        });\n\n");
         
         // Signal line trace (connects all signal points)
         html.append("        var traceSignalLine = {\n");
         html.append("            x: signalLineX,\n");
         html.append("            y: signalLineY,\n");
+        html.append("            text: signalLineText,\n");
         html.append("            type: 'scatter',\n");
         html.append("            mode: 'lines+markers',\n");
         html.append("            name: 'Sinyal Fiyatı (Turuncu)',\n");
         html.append("            line: { color: '#F97316', width: 2, dash: 'solid' },\n");
         html.append("            marker: { color: '#F97316', size: 6 },\n");
-        html.append("            hovertemplate: '<b>%{x|%Y-%m-%d %H:%M}</b><br>Sinyal Fiyatı: %{y:.2f} TL<extra></extra>',\n");
+        html.append("            hovertemplate: '%{text}<br>Sinyal Fiyatı: %{y:.2f} TL<extra></extra>',\n");
         html.append("            yaxis: 'y'\n");
         html.append("        };\n\n");
         
@@ -361,7 +399,7 @@ public class ChartGenerator {
         html.append("            mode: 'markers',\n");
         html.append("            name: 'AL Sinyali',\n");
         html.append("            marker: { color: '#22C55E', size: 12, symbol: 'triangle-up', line: { color: '#fff', width: 2 } },\n");
-        html.append("            hovertemplate: '<b>%{x|%Y-%m-%d %H:%M}</b><br>Fiyat: %{y:.2f} TL<br>%{text}<extra></extra>',\n");
+        html.append("            hovertemplate: '%{text}<br>Fiyat: %{y:.2f} TL<extra></extra>',\n");
         html.append("            yaxis: 'y'\n");
         html.append("        };\n\n");
         
@@ -374,7 +412,7 @@ public class ChartGenerator {
         html.append("            mode: 'markers',\n");
         html.append("            name: 'SAT Sinyali',\n");
         html.append("            marker: { color: '#EF4444', size: 12, symbol: 'triangle-down', line: { color: '#fff', width: 2 } },\n");
-        html.append("            hovertemplate: '<b>%{x|%Y-%m-%d %H:%M}</b><br>Fiyat: %{y:.2f} TL<br>%{text}<extra></extra>',\n");
+        html.append("            hovertemplate: '%{text}<br>Fiyat: %{y:.2f} TL<extra></extra>',\n");
         html.append("            yaxis: 'y'\n");
         html.append("        };\n\n");
         
