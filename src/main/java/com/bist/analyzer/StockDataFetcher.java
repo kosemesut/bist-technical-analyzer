@@ -52,10 +52,30 @@ public class StockDataFetcher {
             in.close();
             
             JSONObject json = new JSONObject(response.toString());
-                JSONObject result = json.getJSONObject("chart").getJSONArray("result").getJSONObject(0);
-                JSONObject indicators = result.getJSONObject("indicators");
-                JSONArray quoteArr = indicators.getJSONArray("quote");
-                JSONObject quote = quoteArr.getJSONObject(0);
+            
+            // Error handling for invalid API responses
+            if (!json.has("chart")) {
+                System.err.println("No chart data in response for " + symbol);
+                return new ArrayList<>();
+            }
+            
+            JSONArray resultArray = json.getJSONObject("chart").getJSONArray("result");
+            if (resultArray.length() == 0 || resultArray.getJSONObject(0).isEmpty()) {
+                System.err.println("Empty result set for " + symbol);
+                return new ArrayList<>();
+            }
+            
+            JSONObject result = resultArray.getJSONObject(0);
+            
+            // Check if timestamp exists
+            if (!result.has("timestamp") || result.isNull("timestamp")) {
+                System.err.println("No timestamp data for " + symbol + " - API may not support this symbol");
+                return new ArrayList<>();
+            }
+            
+            JSONObject indicators = result.getJSONObject("indicators");
+            JSONArray quoteArr = indicators.getJSONArray("quote");
+            JSONObject quote = quoteArr.getJSONObject(0);
             
             JSONArray timestamps = result.getJSONArray("timestamp");
             JSONArray closes = quote.getJSONArray("close");

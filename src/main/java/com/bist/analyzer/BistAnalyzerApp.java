@@ -47,8 +47,8 @@ public class BistAnalyzerApp {
             Set<String> bist100Stocks = new HashSet<>(Arrays.asList(BIST100_STOCKS));
             bist100Stocks.removeAll(userStocks); // Remove user-provided stocks
             
-            System.out.println("Analiz edilecek hisseler: " + stocks);
-            System.out.println("BIST 100'den ek analiz edilecekler: " + (bist100Stocks.size() > 0 ? bist100Stocks.size() + " hisse" : "Yok"));
+            System.out.println("📋 Toplam Analiz Edilecek: " + stocks.size() + " hisse");
+            System.out.println("BIST 100'den ek hisseler: " + (bist100Stocks.size() > 0 ? bist100Stocks.size() + " hisse" : "Yok"));
             System.out.println(repeat("═", 50) + "\n");
 
             // Data containers
@@ -58,6 +58,7 @@ public class BistAnalyzerApp {
 
             // Process user-provided stocks
             processStocks(stocks, userSignals, allData, false);
+            System.out.println("\n✅ Kullanıcı Hisseleri: " + userSignals.size() + " başarıyla analiz edildi");
             
             // Process BIST 100 stocks (only if not too many and if user enabled it)
             if (bist100Stocks.size() > 0 && bist100Stocks.size() <= 30) {
@@ -65,7 +66,13 @@ public class BistAnalyzerApp {
                 System.out.println("BIST 100'den ek hisselerin analizi başlanıyor...");
                 System.out.println(repeat("═", 50) + "\n");
                 processStocks(new ArrayList<>(bist100Stocks), bist100Signals, allData, true);
+                System.out.println("\n✅ BIST 100 Hisseleri: " + bist100Signals.size() + " başarıyla analiz edildi");
             }
+
+            // Summary
+            int totalAnalyzed = userSignals.size() + bist100Signals.size();
+            System.out.println("\n" + repeat("═", 50));
+            System.out.println("📊 TOPLAM SONUÇ: " + totalAnalyzed + " hisse analiz edildi");
 
             // Generate HTML report
             if (!userSignals.isEmpty() || !bist100Signals.isEmpty()) {
