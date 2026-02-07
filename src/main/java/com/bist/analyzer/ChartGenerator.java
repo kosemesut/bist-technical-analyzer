@@ -211,42 +211,16 @@ public class ChartGenerator {
         for (SignalGenerator.TradePoint signal : tradeSignals) {
             String date = DATE_FORMAT.format(new Date(data.get(signal.index).getTimestamp()));
             double price = signal.price;
-            double confidence = signal.confidence;
-            
-            // Map signal quality to Turkish display name
-            String signalDisplay = "Sinyal";
-            if (signal.signal != null) {
-                switch (signal.signal) {
-                    case "STRONG_BUY":
-                        signalDisplay = "Güçlü AL";
-                        break;
-                    case "BUY":
-                        signalDisplay = "AL";
-                        break;
-                    case "STRONG_SELL":
-                        signalDisplay = "Güçlü SAT";
-                        break;
-                    case "SELL":
-                        signalDisplay = "SAT";
-                        break;
-                }
-            }
-            
-            // Format tooltip text: "Güçlü AL (86%)" or "SAT (67%)"
-            String tooltipText = signalDisplay + " (%" + String.format("%.0f", confidence) + ")";
             String reason = signal.reason.replace("'", "\\'");
-            
-            // Combine signal display with detailed reason for tooltip
-            String fullText = tooltipText + "<br>" + reason;
             
             if (signal.type.equals("BUY")) {
                 html.append("        buyDates.push('").append(date).append("');\n");
                 html.append("        buyPrices.push(").append(String.format(Locale.US, "%.2f", price)).append(");\n");
-                html.append("        buyTexts.push('").append(fullText).append("');\n");
+                html.append("        buyTexts.push('").append(reason).append("');\n");
             } else if (signal.type.equals("SELL")) {
                 html.append("        sellDates.push('").append(date).append("');\n");
                 html.append("        sellPrices.push(").append(String.format(Locale.US, "%.2f", price)).append(");\n");
-                html.append("        sellTexts.push('").append(fullText).append("');\n");
+                html.append("        sellTexts.push('").append(reason).append("');\n");
             }
         }
         html.append("\n");
@@ -306,7 +280,7 @@ public class ChartGenerator {
         html.append("            mode: 'markers',\n");
         html.append("            name: 'AL Sinyali',\n");
         html.append("            marker: { color: '#22C55E', size: 12, symbol: 'triangle-up', line: { color: '#fff', width: 2 } },\n");
-        html.append("            hovertemplate: '<b>%{x|%Y-%m-%d %H:%M}</b><br>Fiyat: %{y:.2f} TL<br><b>%{text}</b><extra></extra>',\n");
+        html.append("            hovertemplate: '<b>%{x|%Y-%m-%d %H:%M}</b><br>AL: %{y:.2f} TL<br>%{text}<extra></extra>',\n");
         html.append("            yaxis: 'y'\n");
         html.append("        };\n\n");
         
@@ -319,7 +293,7 @@ public class ChartGenerator {
         html.append("            mode: 'markers',\n");
         html.append("            name: 'SAT Sinyali',\n");
         html.append("            marker: { color: '#EF4444', size: 12, symbol: 'triangle-down', line: { color: '#fff', width: 2 } },\n");
-        html.append("            hovertemplate: '<b>%{x|%Y-%m-%d %H:%M}</b><br>Fiyat: %{y:.2f} TL<br><b>%{text}</b><extra></extra>',\n");
+        html.append("            hovertemplate: '<b>%{x|%Y-%m-%d %H:%M}</b><br>SAT: %{y:.2f} TL<br>%{text}<extra></extra>',\n");
         html.append("            yaxis: 'y'\n");
         html.append("        };\n\n");
         
