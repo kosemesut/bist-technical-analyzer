@@ -1,8 +1,33 @@
-# BIST Technical Analysis System
+# 📊 BIST Technical Analysis System
 
-Automated technical analysis system for BIST stocks with real-time trading signal generation.
+**Otomatik güncellenene canlı rapor için:**
 
-## Features
+🔗 **https://kosemesut.github.io/bist-technical-analyzer/report.html**
+
+> 📱 Telefonundan veya herhangi bir cihazdan erişebilirsin!  
+> 🕒 Her gün sabah **09:00** Türkiye saati'nde otomatik güncellenir.
+
+---
+
+Automated technical analysis system for BIST stocks with **multi-layer confluence scoring** and **AI-powered signal generation**.
+
+## 🚀 Quick Links
+
+- **📈 Live Report**: [kosemesut.github.io/bist-technical-analyzer](https://kosemesut.github.io/bist-technical-analyzer/report.html)
+- **⚙️ GitHub Actions**: Otomatik analiz her gün çalışır
+- **📱 Mobile-First**: Responsive design - telefon/tablet uyumlu
+
+---
+
+## ✨ Features
+
+✅ **Multi-Layer Confirmation System (NEW)**
+- Bollinger Bands breakout/bounce detection
+- MACD Golden/Death Cross
+- Price Action Patterns (Higher highs/Lower lows)
+- RSI Divergence analysis
+- Volume Confluence (2x-3x threshold)
+- **Minimum 2-4 indicator agreement** for signals
 
 ✅ **Automated Data Fetching**
 - Hourly data (1-hour candles, 3 months history)

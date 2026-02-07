@@ -1,0 +1,65 @@
+name: BIST Teknik Analiz - Otomatik Rapor
+
+on:
+  # Her gün Türkiye saati 09:00'da çalış (UTC 06:00)
+  schedule:
+    - cron: '0 6 * * *'
+  
+  # Manuel tetikleme - istediğin zaman çalıştır
+  workflow_dispatch:
+  
+  # Push'larda da çalışsın (isteğe bağlı)
+  push:
+    branches: [ main ]
+
+jobs:
+  analyze-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    
+    steps:
+    - name: 📥 Kodu indir
+      uses: actions/checkout@v4
+    
+    - name: ☕ Java 17 kur
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: maven
+    
+    - name: 🔨 Projeyi derle
+      run: mvn clean package -DskipTests -q
+    
+    - name: 📊 Analiz çalıştır ve rapor oluştur
+      run: |
+        echo "BIST hisselerini analiz ediliyor..."
+        java -jar target/bist-technical-analyzer-1.0.0.jar
+        echo "✅ Analiz tamamlandı!"
+        
+    - name: 📁 Rapor dosyalarını kontrol et
+      run: |
+        ls -la output/
+        echo "Report dosyası var mı?"
+        test -f output/report.html && echo "✅ report.html oluşturuldu" || echo "❌ report.html bulunamadı"
+    
+    - name: 🌐 GitHub Pages'e deploy et
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./output
+        publish_branch: gh-pages
+        force_orphan: true
+        user_name: 'github-actions[bot]'
+        user_email: 'github-actions[bot]@users.noreply.github.com'
+        commit_message: 'Güncel BIST analiz raporu - ${{ github.event.head_commit.message }}'
+    
+    - name: 🎉 Başarılı
+      run: |
+        echo "════════════════════════════════════════"
+        echo "✅ Rapor başarıyla yayınlandı!"
+        echo "🔗 Rapor linki: https://kosemesut.github.io/bist-technical-analyzer/report.html"
+        echo "════════════════════════════════════════"

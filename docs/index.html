@@ -1,53 +1,70 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BIST Technical Analysis Report</title>
+    <meta http-equiv="refresh" content="0; url=report.html">
+    <title>BIST Teknik Analiz - Yönlendiriliyor...</title>
     <style>
         * {margin: 0; padding: 0; box-sizing: border-box;}
-        body {font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #333; line-height: 1.6; padding: 20px;}
-        .container {max-width: 1400px; margin: 0 auto; background: white; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); padding: 30px;}
-        h1 {color: #667eea; margin-bottom: 10px; font-size: 2.5em; border-bottom: 3px solid #667eea; padding-bottom: 15px;}
-        h2 {color: #764ba2; margin-top: 30px; margin-bottom: 15px; font-size: 1.8em;}
-        .timestamp {color: #666; font-size: 0.9em; margin-bottom: 20px;}
-        .status-box {background: #f0f4ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea;}
-        .status-box h3 {color: #667eea; margin-bottom: 10px;}
-        .status-box p {margin: 10px 0;}
-        .info-list {margin-left: 20px; margin-top: 10px;}
-        .info-list li {margin-bottom: 8px;}
-        .next-run {background: #fff3cd; padding: 15px; border-radius: 5px; border-left: 4px solid #ffb300; margin: 20px 0;}
-        .next-run strong {color: #856404;}
-        footer {margin-top: 40px; padding-top: 20px; border-top: 2px solid #eee; text-align: center; color: #666; font-size: 0.9em;}
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            text-align: center;
+        }
+        .container {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        h1 {font-size: 2.5em; margin-bottom: 20px;}
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top: 4px solid white;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        a {
+            color: white;
+            text-decoration: underline;
+            font-size: 1.1em;
+            margin-top: 20px;
+            display: inline-block;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>BIST Technical Analysis System</h1>
-        <div class="timestamp">Last updated: <span id="lastUpdate">Loading...</span></div>
-        
-        <div class="status-box">
-            <h3>📊 System Status: ACTIVE</h3>
-            <p>✅ BIST Technical Analyzer is configured and running</p>
-            <p>The system will automatically analyze stocks every 15 minutes via GitHub Actions.</p>
-        </div>
-
-        <div class="status-box">
-            <h3>⏰ Schedule Information</h3>
-            <ul class="info-list">
-                <li><strong>Run Frequency:</strong> Every 15 minutes</li>
-                <li><strong>Stocks Analyzed:</strong> THYAO, SOKM, FROTO, SISE</li>
-                <li><strong>Data Source:</strong> Yahoo Finance</li>
-                <li><strong>Time Zones:</strong> Istanbul (TRT)</li>
-            </ul>
-        </div>
-
-        <div class="next-run">
-            <strong>📈 Next automatic run:</strong> Within the next 15 minutes from GitHub Actions schedule
-        </div>
-
-        <div class="status-box">
-            <h3>🔧 Technical Indicators Used</h3>
+        <h1>📊 BIST Teknik Analiz</h1>
+        <div class="spinner"></div>
+        <p>Rapora yönlendiriliyorsunuz...</p>
+        <br>
+        <p>Otomatik yönlendirme çalışmazsa:</p>
+        <a href="report.html">Buraya tıklayın</a>
+    </div>
+    
+    <script>
+        // Fallback yönlendirme
+        setTimeout(function() {
+            window.location.href = 'report.html';
+        }, 100);
+    </script>
+</body>
+</html>
             <ul class="info-list">
                 <li><strong>Moving Averages:</strong> SMA20, SMA50, EMA12</li>
                 <li><strong>Momentum:</strong> RSI(14), MACD, Bollinger Bands</li>
