@@ -222,9 +222,7 @@ public class HtmlReportGenerator {
         html.append("                </div>\n");
         html.append("            </div>\n");
         html.append("            <div class=\"charts\">\n");
-        html.append("                <img src=\"charts/").append(signal.symbol).append("_price.png\" alt=\"Fiyat Grafiği\" class=\"chart-img\">\n");
-        html.append("                <img src=\"charts/").append(signal.symbol).append("_technical.png\" alt=\"Teknik Grafik\" class=\"chart-img\">\n");
-        html.append("                <img src=\"charts/").append(signal.symbol).append("_volume.png\" alt=\"Hacim Grafiği\" class=\"chart-img\">\n");
+        html.append("                <img src=\"charts/").append(signal.symbol).append("_chart.png\" alt=\"Teknik Analiz Grafiği\" class=\"chart-img\">\n");
         html.append("            </div>\n");
         html.append("            <div class=\"analysis\">\n");
         html.append("                <h4>Teknik Analiz Detayları</h4>\n");
@@ -271,8 +269,8 @@ public class HtmlReportGenerator {
             ".info-item {background: white;padding: 10px;border-radius: 5px;border: 1px solid #ddd;transition: all 0.3s ease;} .info-item:hover {box-shadow: 0 2px 8px rgba(0,0,0,0.1);border-color: #667eea;} " +
             ".info-item .label {display: block;font-size: 0.85em;color: #666;margin-bottom: 5px;} " +
             ".info-item .value {display: block;font-size: 1.2em;font-weight: 600;color: #667eea;} " +
-            ".charts {display: grid;grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));gap: 20px;margin-top: 20px;} " +
-            ".chart-img {max-width: 100%;border-radius: 8px;box-shadow: 0 2px 8px rgba(0,0,0,0.1);} " +
+            ".charts {margin-top: 20px;text-align: center;} " +
+            ".chart-img {width: 100%;max-width: 1600px;border-radius: 8px;box-shadow: 0 4px 12px rgba(0,0,0,0.15);} " +
             ".analysis {background: white;padding: 20px;border-radius: 8px;margin-top: 20px;border-left: 4px solid #764ba2;} " +
             ".analysis h4 {color: #764ba2;margin-bottom: 15px;font-size: 1.2em;} " +
             ".analysis-details {display: flex;flex-direction: column;gap: 10px;line-height: 1.8;} " +
