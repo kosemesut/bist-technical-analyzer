@@ -29,6 +29,7 @@ public class ChartGenerator {
         public double high;              // Highest price of day
         public double low;               // Lowest price of day
         public double close;             // Last hour's close price
+        public long volume;              // Daily total trading volume
         public String closingTime;       // HH:mm of last transaction
         public long timestamp;           // Timestamp of last transaction
         public SignalGenerator.TradePoint signal;  // Signal if occurred on this day
@@ -39,6 +40,7 @@ public class ChartGenerator {
             this.high = high;
             this.low = low;
             this.close = close;
+            this.volume = 0;             // Initialize volume
             this.closingTime = "";
             this.timestamp = 0;
             this.signal = null;
@@ -74,7 +76,7 @@ public class ChartGenerator {
     
     /**
      * Aggregate hourly data to daily OHLC - ensures ONE point per day
-     * Properly maintains: open=first hour, high=max, low=min, close=last hour
+     * Properly maintains: open=first hour, high=max, low=min, close=last hour, volume=sum
      */
     private static Map<String, DailyData> aggregateToDailyOHLC(List<StockData> hourlyData) {
         Map<String, DailyData> dailyMap = new LinkedHashMap<>();
@@ -94,15 +96,17 @@ public class ChartGenerator {
                     hourly.getClose());                  // close = first hour's close (will be updated)
                 daily.closingTime = timeStr;
                 daily.timestamp = hourly.getTimestamp();
+                daily.volume = hourly.getVolume();       // Initialize with first hour's volume
                 dailyMap.put(dateStr, daily);
             } else {
-                // Subsequent data points for same day - update OHLC
+                // Subsequent data points for same day - update OHLC and volume
                 DailyData daily = dailyMap.get(dateStr);
                 daily.high = Math.max(daily.high, hourly.getHigh());
                 daily.low = Math.min(daily.low, hourly.getLow());
                 daily.close = hourly.getClose();         // close = last hour's close
                 daily.closingTime = timeStr;             // closingTime = last hour's time
                 daily.timestamp = hourly.getTimestamp(); // timestamp = last hour's timestamp
+                daily.volume += hourly.getVolume();      // Accumulate volume for the day
             }
         }
         
@@ -260,6 +264,7 @@ public class ChartGenerator {
         List<Double> dailyCloses = new ArrayList<>();
         List<Double> dailyHighs = new ArrayList<>();
         List<Double> dailyLows = new ArrayList<>();
+        List<Long> dailyVolumes = new ArrayList<>();    // Daily trading volume
         List<String> closingTimes = new ArrayList<>();
         List<Double> dailyChanges = new ArrayList<>();
         List<String> signals = new ArrayList<>();
@@ -279,6 +284,7 @@ public class ChartGenerator {
             dailyCloses.add(daily.close);
             dailyHighs.add(daily.high);
             dailyLows.add(daily.low);
+            dailyVolumes.add(daily.volume);             // Add daily volume
             closingTimes.add(daily.closingTime);
             
             // Get day name (Pazartesi, Salı, vb)
@@ -372,6 +378,14 @@ public class ChartGenerator {
         for (int i = 0; i < dailyLows.size(); i++) {
             if (i > 0) html.append(", ");
             html.append(String.format(Locale.US, "%.2f", dailyLows.get(i)));
+        }
+        html.append("];\n\n");
+        
+        // Daily trading volumes
+        html.append("        var volumes = [");
+        for (int i = 0; i < dailyVolumes.size(); i++) {
+            if (i > 0) html.append(", ");
+            html.append(dailyVolumes.get(i));
         }
         html.append("];\n\n");
         
@@ -536,7 +550,7 @@ public class ChartGenerator {
         html.append("        // Build custom data for hover template\n");
         html.append("        var customdata = [];\n");
         html.append("        for (let i = 0; i < dates.length; i++) {\n");
-        html.append("            customdata.push([opens[i], dailyChanges[i], closingTimes[i], signalTypes[i], dayNames[i]]);\n");
+        html.append("            customdata.push([opens[i], dailyChanges[i], closingTimes[i], signalTypes[i], dayNames[i], volumes[i]]);\n");
         html.append("        }\n\n");
         
         html.append("        // Price chart traces\n");
@@ -548,7 +562,7 @@ public class ChartGenerator {
         html.append("            mode: 'lines',\n");
         html.append("            name: 'Kapanış Fiyatı',\n");
         html.append("            line: { color: '#1a1a1a', width: 2 },\n");
-        html.append("            hovertemplate: '<b>Tarih: %{x} (%{customdata[4]})</b><br>Açılış: %{customdata[0]:.2f} TL<br>Kapanış: %{y:.2f} TL<br>Günlük Değişim: %{customdata[1]:.2f}%<br>Kapanış Saati: %{customdata[2]}<br>Sinyal: %{customdata[3]}<extra></extra>',\n");
+        html.append("            hovertemplate: '<b>Tarih: %{x} (%{customdata[4]})</b><br>Açılış: %{customdata[0]:.2f} TL<br>Kapanış: %{y:.2f} TL<br>Günlük Değişim: %{customdata[1]:.2f}%<br>Kapanış Saati: %{customdata[2]}<br>Günlük Hacim: %{customdata[5]:,.0f}<br>Sinyal: %{customdata[3]}<extra></extra>',\n");
         html.append("            yaxis: 'y'\n");
         html.append("        };\n\n");
         
@@ -640,8 +654,8 @@ public class ChartGenerator {
         html.append("            yaxis: 'y'\n");
         html.append("        };\n\n");
         
-        // RSI trace
-        html.append("        // RSI chart trace\n");
+        // RSI trace (hidden - replaced with volume)
+        html.append("        // RSI chart trace (hidden)\n");
         html.append("        var traceRSI = {\n");
         html.append("            x: dates,\n");
         html.append("            y: rsi,\n");
@@ -650,6 +664,21 @@ public class ChartGenerator {
         html.append("            name: 'RSI(14)',\n");
         html.append("            line: { color: '#A855F7', width: 2 },\n");
         html.append("            hovertemplate: '<b>%{x}</b><br>RSI: %{y:.1f}<extra></extra>',\n");
+        html.append("            visible: false,\n");
+        html.append("            showlegend: false,\n");
+        html.append("            yaxis: 'y2',\n");
+        html.append("            xaxis: 'x'\n");
+        html.append("        };\n\n");
+        
+        // Volume bars trace
+        html.append("        var traceVolume = {\n");
+        html.append("            x: dates,\n");
+        html.append("            y: volumes,\n");
+        html.append("            type: 'bar',\n");
+        html.append("            mode: 'markers',\n");
+        html.append("            name: 'Hacim',\n");
+        html.append("            marker: { color: 'rgba(68, 85, 102, 0.5)' },\n");
+        html.append("            hovertemplate: '<b>Tarih: %{x|%Y-%m-%d}</b><br>Hacim: %{y:,.0f}<extra></extra>',\n");
         html.append("            visible: true,\n");
         html.append("            yaxis: 'y2',\n");
         html.append("            xaxis: 'x'\n");
@@ -706,9 +735,8 @@ public class ChartGenerator {
         html.append("                gridcolor: '#e5e5e5'\n");
         html.append("            },\n");
         html.append("            yaxis2: {\n");
-        html.append("                title: 'RSI',\n");
+        html.append("                title: 'Hacim',\n");
         html.append("                domain: [0, 0.25],\n"); // Bottom 25% of chart
-        html.append("                range: [0, 100],\n");
         html.append("                showgrid: true,\n");
         html.append("                gridcolor: '#e5e5e5'\n");
         html.append("            },\n");
@@ -738,7 +766,7 @@ public class ChartGenerator {
         
         // Plot
         html.append("        // Render chart\n");
-        html.append("        var data = [tracePrice, traceSMA20, traceSMA50, traceEMA12, traceAlSignals, traceStrongAlSignals, traceSatSignals, traceStrongSatSignals, traceRSI, traceRSI70, traceRSI30];\n");
+        html.append("        var data = [tracePrice, traceSMA20, traceSMA50, traceEMA12, traceAlSignals, traceStrongAlSignals, traceSatSignals, traceStrongSatSignals, traceVolume, traceRSI, traceRSI70, traceRSI30];\n");
         html.append("        Plotly.newPlot('chart', data, layout, config);\n");
         
         html.append("    </script>\n");

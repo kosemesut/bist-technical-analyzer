@@ -530,8 +530,9 @@ public class HtmlReportGenerator {
             return;
         }
 
-        // Extract daily closing prices from data (works for both hourly and daily data)
+        // Extract daily closing prices and volumes from data (works for both hourly and daily data)
         List<Double> dailyCloses = extractDailyClosingPrices(data);
+        List<Long> dailyVolumes = extractDailyVolumes(data);
         if (dailyCloses.isEmpty()) {
             html.append("<span class=\"price-change-item\">Veri yok</span>");
             return;
@@ -540,24 +541,24 @@ public class HtmlReportGenerator {
         int lastDayIdx = dailyCloses.size() - 1;
         
         // 1 day (1 gün - 1 trading day back)
-        appendCompactChangeDaily(html, "1g", dailyCloses, lastDayIdx, 1, currentPrice);
+        appendCompactChangeDaily(html, "1g", dailyCloses, dailyVolumes, lastDayIdx, 1, currentPrice);
         html.append(" ");
         
         // 5 days (5 gün - 5 trading days back / 1 hafta)
-        appendCompactChangeDaily(html, "5g", dailyCloses, lastDayIdx, 5, currentPrice);
+        appendCompactChangeDaily(html, "5g", dailyCloses, dailyVolumes, lastDayIdx, 5, currentPrice);
         html.append(" ");
         
         // 1 month (1 ay - 20 trading days back)
-        appendCompactChangeDaily(html, "1a", dailyCloses, lastDayIdx, 20, currentPrice);
+        appendCompactChangeDaily(html, "1a", dailyCloses, dailyVolumes, lastDayIdx, 20, currentPrice);
         html.append(" ");
         
         // 3 months (3 ay - 60 trading days back) - if not available, use maximum with "3a" label
-        appendCompactChangeDailyWithFallback(html, "3a", dailyCloses, lastDayIdx, 60, currentPrice);
+        appendCompactChangeDailyWithFallback(html, "3a", dailyCloses, dailyVolumes, lastDayIdx, 60, currentPrice);
         html.append(" ");
         
         // 1 year (1 yıl - 252 trading days back) - if available show it
         if (lastDayIdx >= 252) {
-            appendCompactChangeDaily(html, "1y", dailyCloses, lastDayIdx, 252, currentPrice);
+            appendCompactChangeDaily(html, "1y", dailyCloses, dailyVolumes, lastDayIdx, 252, currentPrice);
         }
     }
 
@@ -580,12 +581,32 @@ public class HtmlReportGenerator {
         
         return new ArrayList<>(dayClosePrices.values());
     }
+    
+    /**
+     * Extract daily trading volumes from stock data
+     * Groups by date and returns the sum of volumes for each day
+     */
+    private static List<Long> extractDailyVolumes(List<StockData> data) {
+        if (data.isEmpty()) return new ArrayList<>();
+        
+        Map<String, Long> dayVolumes = new LinkedHashMap<>();
+        java.time.format.DateTimeFormatter dateFormatter = java.time.format.DateTimeFormatter
+            .ofPattern("yyyy-MM-dd")
+            .withZone(java.time.ZoneId.of("Europe/Istanbul"));
+        
+        for (StockData point : data) {
+            String dateKey = dateFormatter.format(java.time.Instant.ofEpochMilli(point.getTimestamp()));
+            dayVolumes.put(dateKey, dayVolumes.getOrDefault(dateKey, 0L) + point.getVolume()); // Sum volumes
+        }
+        
+        return new ArrayList<>(dayVolumes.values());
+    }
 
     /**
-     * Append price change based on daily closing prices
+     * Append price change based on daily closing prices with volume tooltip
      */
     private static void appendCompactChangeDaily(StringBuilder html, String label, List<Double> dailyCloses,
-                                                 int lastDayIdx, int daysBack, double currentPrice) {
+                                                 List<Long> dailyVolumes, int lastDayIdx, int daysBack, double currentPrice) {
         int targetIdx = lastDayIdx - daysBack;
         if (targetIdx < 0 || targetIdx >= dailyCloses.size()) {
             html.append("<span class=\"price-change-item\"><span class=\"price-change-label\">").append(label)
@@ -601,11 +622,14 @@ public class HtmlReportGenerator {
         }
 
         double changePercent = ((currentPrice - oldPrice) / oldPrice) * 100;
-
+        long currentVolume = lastDayIdx < dailyVolumes.size() ? dailyVolumes.get(lastDayIdx) : 0;
+        String volumeText = String.format("Günlük Hacim: %,d", currentVolume);
+        
         String colorClass = changePercent >= 0 ? "positive" : "negative";
         String arrow = changePercent >= 0 ? "▲" : "▼";
 
-        html.append("<span class=\"price-change-item\"><span class=\"price-change-label\">").append(label)
+        html.append("<span class=\"price-change-item\" title=\"").append(volumeText).append("\">");
+        html.append("<span class=\"price-change-label\">").append(label)
             .append(":</span> <span class=\"").append(colorClass).append("\">")
             .append(arrow).append(String.format("%.1f%%", Math.abs(changePercent)))
             .append("</span></span>");
@@ -615,12 +639,12 @@ public class HtmlReportGenerator {
      * Append price change with fallback: if requested period not available, use max available data
      */
     private static void appendCompactChangeDailyWithFallback(StringBuilder html, String label, 
-                                                             List<Double> dailyCloses, int lastDayIdx,
-                                                             int daysBack, double currentPrice) {
+                                                             List<Double> dailyCloses, List<Long> dailyVolumes,
+                                                             int lastDayIdx, int daysBack, double currentPrice) {
         // Try requested period first
         int targetIdx = lastDayIdx - daysBack;
         if (targetIdx >= 0 && targetIdx < dailyCloses.size()) {
-            appendCompactChangeDaily(html, label, dailyCloses, lastDayIdx, daysBack, currentPrice);
+            appendCompactChangeDaily(html, label, dailyCloses, dailyVolumes, lastDayIdx, daysBack, currentPrice);
             return;
         }
         
@@ -629,10 +653,13 @@ public class HtmlReportGenerator {
             double oldPrice = dailyCloses.get(0);
             if (oldPrice > 0) {
                 double changePercent = ((currentPrice - oldPrice) / oldPrice) * 100;
+                long currentVolume = lastDayIdx < dailyVolumes.size() ? dailyVolumes.get(lastDayIdx) : 0;
+                String volumeText = String.format("Günlük Hacim: %,d", currentVolume);
                 String colorClass = changePercent >= 0 ? "positive" : "negative";
                 String arrow = changePercent >= 0 ? "▲" : "▼";
                 
-                html.append("<span class=\"price-change-item\"><span class=\"price-change-label\">").append(label)
+                html.append("<span class=\"price-change-item\" title=\"").append(volumeText).append("\">");
+                html.append("<span class=\"price-change-label\">").append(label)
                     .append(":</span> <span class=\"").append(colorClass).append("\">")
                     .append(arrow).append(String.format("%.1f%%", Math.abs(changePercent)))
                     .append("</span></span>");
