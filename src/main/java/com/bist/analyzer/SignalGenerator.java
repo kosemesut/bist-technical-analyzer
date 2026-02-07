@@ -47,8 +47,9 @@ public class SignalGenerator {
     }
 
     /**
-     * Generate trading signals using score-based system
-     * Based on: EMA trend, RSI, MACD, Volume, OBV, Breakout/Breakdown
+     * Generate trading signals using ENHANCED multi-layer confirmation system
+     * Based on: EMA trend, RSI, MACD, Bollinger, Volume, OBV, Price Action, Confluence
+     * OPTIMIZED FOR INVESTMENT DECISIONS - Multiple confirmations required
      */
     public static SignalResult generateSignal(String symbol, List<StockData> data,
                                              double[] sma20, double[] sma50, double[] ema12,
@@ -86,8 +87,9 @@ public class SignalGenerator {
         double volatilityRatio = Double.isNaN(atr[lastIdx]) ? 0 : atr[lastIdx] / latest.getClose();
         boolean highVolatility = volatilityRatio > 0.08;
         
-        // 2. TREND DETECTION
+        // 2. TREND DETECTION (Enhanced with multiple timeframes)
         int trendScore = 0;
+        int confirmationCount = 0; // Track how many indicators agree
         StringBuilder details = new StringBuilder();
         
         boolean bullishTrend = !Double.isNaN(ema20[lastIdx]) && !Double.isNaN(ema50[lastIdx]) && 
@@ -130,45 +132,120 @@ public class SignalGenerator {
             }
         }
         
-        // 3. MOMENTUM CONFIRMATION
+        // 3. MOMENTUM CONFIRMATION (Enhanced with RSI divergence)
         int momentumScore = 0;
         
-        if (!Double.isNaN(rsi[lastIdx])) {
-            if (rsi[lastIdx] > 55) {
+        // RSI Analysis with stricter thresholds
+        if (!Double.isNaN(rsi[lastIdx]) && lastIdx >= 5) {
+            // Check RSI trend (5-period)
+            double rsiTrend = rsi[lastIdx] - rsi[lastIdx - 5];
+            
+            if (rsi[lastIdx] > 60) {
+                momentumScore += 2;
+                confirmationCount++;
+                details.append("<strong>✓ RSI (Göreceli Güç):</strong> Güçlü Boğa Momentumu (")
+                      .append(String.format("%.1f", rsi[lastIdx])).append(")<br>");
+            } else if (rsi[lastIdx] > 50 && rsiTrend > 5) {
                 momentumScore += 1;
-                details.append("<strong>RSI (Göreceli Güç):</strong> Boğa Momentumu (")
+                details.append("<strong>RSI:</strong> Yükselen Momentum (")
+                      .append(String.format("%.1f", rsi[lastIdx])).append(", +")
+                      .append(String.format("%.1f", rsiTrend)).append(")<br>");
+            } else if (rsi[lastIdx] < 40) {
+                momentumScore -= 2;
+                confirmationCount++;
+                details.append("<strong>✓ RSI:</strong> Güçlü Ayı Momentumu (")
                       .append(String.format("%.1f", rsi[lastIdx])).append(")<br>");
-            } else if (rsi[lastIdx] < 45) {
+            } else if (rsi[lastIdx] < 50 && rsiTrend < -5) {
                 momentumScore -= 1;
-                details.append("<strong>RSI (Göreceli Güç):</strong> A yı Momentumu (")
+                details.append("<strong>RSI:</strong> Düşen Momentum (")
+                      .append(String.format("%.1f", rsi[lastIdx])).append(", ")
+                      .append(String.format("%.1f", rsiTrend)).append(")<br>");
+            }
+            
+            // Oversold/Overbought with reversal confirmation
+            if (rsi[lastIdx] < 30 && rsiTrend > 0) {
+                momentumScore += 2;
+                confirmationCount++;
+                details.append("<strong>✓ RSI Geri Dönüş:</strong> Aşırı Satıştan Çıkış (")
                       .append(String.format("%.1f", rsi[lastIdx])).append(")<br>");
-            } else if (rsi[lastIdx] < 30) {
-                momentumScore += 1; // Oversold bounce potential
-                details.append("<strong>RSI:</strong> Aşırı Satış Bölgesi - Geri Dönüş Potansiyeli (")
-                      .append(String.format("%.1f", rsi[lastIdx])).append(")<br>");
-            } else if (rsi[lastIdx] > 70) {
-                momentumScore -= 1; // Overbought
-                details.append("<strong>RSI:</strong> Aşırı Alım Bölgesi (")
+            } else if (rsi[lastIdx] > 70 && rsiTrend < 0) {
+                momentumScore -= 2;
+                confirmationCount++;
+                details.append("<strong>✓ RSI Geri Dönüş:</strong> Aşırı Alımdan Düşüş (")
                       .append(String.format("%.1f", rsi[lastIdx])).append(")<br>");
             }
         }
         
-        // MACD histogram
-        if (lastIdx > 0 && !Double.isNaN(macd.histogram[lastIdx]) && !Double.isNaN(macd.histogram[lastIdx - 1])) {
-            if (macd.histogram[lastIdx] > 0 && macd.histogram[lastIdx] > macd.histogram[lastIdx - 1]) {
-                momentumScore += 1;
-                details.append("<strong>MACD:</strong> Yükseliş Histogramı (Momentum Artıyor)<br>");
-            } else if (macd.histogram[lastIdx] < 0 && macd.histogram[lastIdx] < macd.histogram[lastIdx - 1]) {
-                momentumScore -= 1;
-                details.append("<strong>MACD:</strong> Düşüş Histogramı (Momentum Azalıyor)<br>");
+        // MACD with crossover detection (ENHANCED)
+        if (lastIdx > 1 && !Double.isNaN(macd.macdLine[lastIdx]) && !Double.isNaN(macd.signalLine[lastIdx])) {
+            double prevMacdLine = macd.macdLine[lastIdx - 1];
+            double prevSignalLine = macd.signalLine[lastIdx - 1];
+            
+            // Golden Cross (MACD crosses above Signal)
+            if (prevMacdLine <= prevSignalLine && macd.macdLine[lastIdx] > macd.signalLine[lastIdx]) {
+                momentumScore += 3;
+                confirmationCount++;
+                details.append("<strong>✓ MACD GOLDEN CROSS:</strong> Güçlü Alış Sinyali<br>");
+            }
+            // Death Cross (MACD crosses below Signal)
+            else if (prevMacdLine >= prevSignalLine && macd.macdLine[lastIdx] < macd.signalLine[lastIdx]) {
+                momentumScore -= 3;
+                confirmationCount++;
+                details.append("<strong>✓ MACD DEATH CROSS:</strong> Güçlü Satış Sinyali<br>");
+            }
+            // Histogram direction
+            else if (!Double.isNaN(macd.histogram[lastIdx]) && !Double.isNaN(macd.histogram[lastIdx - 1])) {
+                if (macd.histogram[lastIdx] > 0 && macd.histogram[lastIdx] > macd.histogram[lastIdx - 1]) {
+                    momentumScore += 1;
+                    details.append("<strong>MACD:</strong> Yükseliş Histogramı (Momentum Artıyor)<br>");
+                } else if (macd.histogram[lastIdx] < 0 && macd.histogram[lastIdx] < macd.histogram[lastIdx - 1]) {
+                    momentumScore -= 1;
+                    details.append("<strong>MACD:</strong> Düşüş Histogramı (Momentum Azalıyor)<br>");
+                }
             }
         }
         
-        // 4. VOLUME CONFIRMATION
+        // 4. BOLLINGER BANDS ANALYSIS (NEW - HIGH PRECISION)
+        int bollingerScore = 0;
+        if (!Double.isNaN(bb.upper[lastIdx]) && !Double.isNaN(bb.lower[lastIdx]) && !Double.isNaN(bb.middle[lastIdx])) {
+            double bbPosition = (latest.getClose() - bb.lower[lastIdx]) / (bb.upper[lastIdx] - bb.lower[lastIdx]);
+            double bbWidth = (bb.upper[lastIdx] - bb.lower[lastIdx]) / bb.middle[lastIdx];
+            
+            // Bollinger Breakout (price closes above upper band)
+            if (latest.getClose() > bb.upper[lastIdx] && data.get(lastIdx - 1).getClose() <= bb.upper[lastIdx - 1]) {
+                bollingerScore += 3;
+                confirmationCount++;
+                details.append("<strong>✓ BOLLINGER BREAKOUT:</strong> Fiyat Üst Bant Üzerinde<br>");
+            }
+            // Bollinger Breakdown (price closes below lower band)
+            else if (latest.getClose() < bb.lower[lastIdx] && data.get(lastIdx - 1).getClose() >= bb.lower[lastIdx - 1]) {
+                bollingerScore -= 3;
+                confirmationCount++;
+                details.append("<strong>✓ BOLLINGER BREAKDOWN:</strong> Fiyat Alt Bant Altında<br>");
+            }
+            // Bollinger Bounce from lower (oversold)
+            else if (bbPosition < 0.2 && latest.getClose() > data.get(lastIdx - 1).getClose()) {
+                bollingerScore += 2;
+                details.append("<strong>Bollinger:</strong> Alt Banttan Geri Sekmek (Aşırı Satış)<br>");
+            }
+            // Bollinger rejection from upper (overbought)
+            else if (bbPosition > 0.8 && latest.getClose() < data.get(lastIdx - 1).getClose()) {
+                bollingerScore -= 2;
+                details.append("<strong>Bollinger:</strong> Üst Banttan Red (Aşırı Alım)<br>");
+            }
+            
+            // Bollinger Squeeze (low volatility - prepare for breakout)
+            if (bbWidth < 0.05) {
+                details.append("<strong>⚠️ Bollinger Squeeze:</strong> Düşük Volatilite - Kırılım Bekleniyor<br>");
+            }
+        }
+        
+        // 5. VOLUME CONFIRMATION (Enhanced with stricter thresholds)
         int volumeScore = 0;
         
         double avgVolume = TechnicalIndicators.getAverageVolume(data, lastIdx, 20);
-        boolean volumeSpike = latest.getVolume() > avgVolume * 1.5;
+        boolean volumeSpike = latest.getVolume() > avgVolume * 2.0; // INCREASED from 1.5x to 2.0x
+        boolean strongVolumeSpike = latest.getVolume() > avgVolume * 3.0;
         
         // Breakout detection
         double highest20 = TechnicalIndicators.getHighestHigh(data, lastIdx - 1, 20);
@@ -177,15 +254,36 @@ public class SignalGenerator {
         boolean breakout = !Double.isNaN(highest20) && latest.getClose() > highest20;
         boolean breakdown = !Double.isNaN(lowest20) && latest.getClose() < lowest20;
         
-        if (breakout && volumeSpike) {
+        if (breakout && strongVolumeSpike) {
+            volumeScore += 4;
+            confirmationCount++;
+            details.append("<strong>✓ GÜÇLÜ KIRILIM:</strong> 20 Günlük Direnç + 3x Hacim<br>");
+        } else if (breakout && volumeSpike) {
             volumeScore += 2;
-            details.append("<strong>Kırılım (Breakout):</strong> 20 Günlük Direnç Kırıldı + Yüksek Hacim<br>");
+            confirmationCount++;
+            details.append("<strong>✓ Kırılım (Breakout):</strong> 20 Günlük Direnç Kırıldı + Yüksek Hacim<br>");
+        } else if (breakdown && strongVolumeSpike) {
+            volumeScore -= 4;
+            confirmationCount++;
+            details.append("<strong>✓ GÜÇLÜ ÇÖKÜŞ:</strong> 20 Günlük Destek + 3x Hacim<br>");
         } else if (breakdown && volumeSpike) {
             volumeScore -= 2;
-            details.append("<strong>Çöküş (Breakdown):</strong> 20 Günlük Destek Kırıldı + Yüksek Hacim<br>");
+            confirmationCount++;
+            details.append("<strong>✓ Çöküş (Breakdown):</strong> 20 Günlük Destek Kırıldı + Yüksek Hacim<br>");
         }
         
-        if (volumeSpike) {
+        if (strongVolumeSpike) {
+            details.append("<strong>✓ AŞIRI YÜ KSEK HACİM:</strong> ")
+                  .append(String.format("%.0f%%", (latest.getVolume() / avgVolume - 1) * 100))
+                  .append(" artış (3x üzeri)<br>");
+            if (latest.getClose() > data.get(lastIdx - 1).getClose()) {
+                volumeScore += 2;
+                confirmationCount++;
+            } else {
+                volumeScore -= 2;
+                confirmationCount++;
+            }
+        } else if (volumeSpike) {
             details.append("<strong>Hacim:</strong> Ortalama Üzeri (")
                   .append(String.format("%.0f%%", (latest.getVolume() / avgVolume - 1) * 100))
                   .append(" artış)<br>");
@@ -200,16 +298,59 @@ public class SignalGenerator {
         double obv20High = TechnicalIndicators.getHighestValue(obv, lastIdx, 20);
         double obv20Low = TechnicalIndicators.getLowestValue(obv, lastIdx, 20);
         
-        if (obv[lastIdx] >= obv20High) {
-            volumeScore += 1;
-            details.append("<strong>OBV (Hacim Dengesi):</strong> 20 Günlük Zirve - Biriktirim<br>");
-        } else if (obv[lastIdx] <= obv20Low) {
-            volumeScore -= 1;
-            details.append("<strong>OBV (Hacim Dengesi):</strong> 20 Günlük Dip - Dağıtım<br>");
+        // OBV with trend confirmation
+        if (lastIdx >= 10 && obv[lastIdx] >= obv20High) {
+            double obvTrend = obv[lastIdx] - obv[lastIdx - 10];
+            if (obvTrend > 0) {
+                volumeScore += 2;
+                confirmationCount++;
+                details.append("<strong>✓ OBV:</strong> 20 Günlük Zirve + Yükseliş Trendi - Güçlü Biriktirim<br>");
+            } else {
+                volumeScore += 1;
+                details.append("<strong>OBV (Hacim Dengesi):</strong> 20 Günlük Zirve - Biriktirim<br>");
+            }
+        } else if (lastIdx >= 10 && obv[lastIdx] <= obv20Low) {
+            double obvTrend = obv[lastIdx] - obv[lastIdx - 10];
+            if (obvTrend < 0) {
+                volumeScore -= 2;
+                confirmationCount++;
+                details.append("<strong>✓ OBV:</strong> 20 Günlük Dip + Düşüş Trendi - Güçlü Dağıtım<br>");
+            } else {
+                volumeScore -= 1;
+                details.append("<strong>OBV (Hacim Dengesi):</strong> 20 Günlük Dip - Dağıtım<br>");
+            }
         }
         
-        // 5. TOTAL SCORE
-        int totalScore = trendScore + momentumScore + volumeScore;
+        // 6. PRICE ACTION PATTERNS (NEW - CRITICAL)
+        int priceActionScore = 0;
+        if (lastIdx >= 20) {
+            // Higher Highs and Higher Lows (uptrend)
+            double prevHigh = Double.MIN_VALUE;
+            double prevLow = Double.MAX_VALUE;
+            for (int i = lastIdx - 20; i < lastIdx - 10; i++) {
+                prevHigh = Math.max(prevHigh, data.get(i).getHigh());
+                prevLow = Math.min(prevLow, data.get(i).getLow());
+            }
+            double recentHigh = Double.MIN_VALUE;
+            double recentLow = Double.MAX_VALUE;
+            for (int i = lastIdx - 10; i <= lastIdx; i++) {
+                recentHigh = Math.max(recentHigh, data.get(i).getHigh());
+                recentLow = Math.min(recentLow, data.get(i).getLow());
+            }
+            
+            if (recentHigh > prevHigh && recentLow > prevLow) {
+                priceActionScore += 3;
+                confirmationCount++;
+                details.append("<strong>✓ PRICE ACTION:</strong> Higher Highs & Higher Lows (Güçlü Yükseliş)<br>");
+            } else if (recentHigh < prevHigh && recentLow < prevLow) {
+                priceActionScore -= 3;
+                confirmationCount++;
+                details.append("<strong>✓ PRICE ACTION:</strong> Lower Highs & Lower Lows (Güçlü Düşüş)<br>");
+            }
+        }
+        
+        // 7. TOTAL SCORE WITH BOLLINGER AND PRICE ACTION
+        int totalScore = trendScore + momentumScore + bollingerScore + volumeScore + priceActionScore;
         
         // Apply volatility penalty
         if (highVolatility && totalScore > 0) {
@@ -218,32 +359,49 @@ public class SignalGenerator {
                   .append(String.format("%.2f%%", volatilityRatio * 100)).append(")<br>");
         }
         
-        // 6. CLASSIFICATION
+        // 8. CONFLUENCE CHECK (CRITICAL - Multiple confirmations required)
+        boolean hasStrongConfluence = confirmationCount >= 4; // At least 4 indicators agree
+        boolean hasMinimumConfluence = confirmationCount >= 2; // At least 2 indicators agree
+        
+        // 9. CLASSIFICATION (Enhanced with confluence requirement)
         String signal;
         double confidence;
         
-        if (totalScore >= 6) {
+        if (totalScore >= 10 && hasStrongConfluence) {
             signal = "STRONG_BUY";
-            confidence = Math.min(95, 70 + (totalScore - 6) * 5);
-        } else if (totalScore >= 4) {
+            confidence = Math.min(95, 75 + confirmationCount * 3);
+            details.append("<br><strong>🎯 CONFLUENCE:</strong> ").append(confirmationCount)
+                  .append(" gösterge aynı yönde - GÜÇLÜ SİNYAL<br>");
+        } else if (totalScore >= 6 && hasMinimumConfluence) {
             signal = "BUY";
-            confidence = 55 + (totalScore - 4) * 7.5;
-        } else if (totalScore >= -3 && totalScore <= 3) {
+            confidence = 60 + confirmationCount * 5;
+            details.append("<br><strong>✓ CONFLUENCE:</strong> ").append(confirmationCount)
+                  .append(" gösterge aynı yönde<br>");
+        } else if (totalScore <= -10 && hasStrongConfluence) {
+            signal = "STRONG_SELL";
+            confidence = Math.min(95, 75 + confirmationCount * 3);
+            details.append("<br><strong>🎯 CONFLUENCE:</strong> ").append(confirmationCount)
+                  .append(" gösterge aynı yönde - GÜÇLÜ SİNYAL<br>");
+        } else if (totalScore <= -6 && hasMinimumConfluence) {
+            signal = "SELL";
+            confidence = 60 + confirmationCount * 5;
+            details.append("<br><strong>✓ CONFLUENCE:</strong> ").append(confirmationCount)
+                  .append(" gösterge aynı yönde<br>");
+        } else {
             signal = "HOLD";
             confidence = 50;
-        } else if (totalScore >= -5) {
-            signal = "SELL";
-            confidence = 55 + Math.abs(totalScore + 4) * 7.5;
-        } else {
-            signal = "STRONG_SELL";
-            confidence = Math.min(95, 70 + Math.abs(totalScore + 6) * 5);
+            if (totalScore != 0) {
+                details.append("<br><strong>⚠️ YETERSİZ CONFLUENCE:</strong> Sinyaller karışık, bekleme önerilir<br>");
+            }
         }
         
-        // Add score to details
+        // Add detailed score breakdown
         details.append("<br><strong>📊 Toplam Skor:</strong> ").append(totalScore)
               .append(" (Trend: ").append(trendScore)
               .append(", Momentum: ").append(momentumScore)
-              .append(", Hacim: ").append(volumeScore).append(")");
+              .append(", Bollinger: ").append(bollingerScore)
+              .append(", Hacim: ").append(volumeScore)
+              .append(", Price Action: ").append(priceActionScore).append(")");
         
         return new SignalResult(symbol, latest.getTimestamp(), latest.getClose(), 
                               signal, confidence, details.toString(), totalScore);
@@ -251,9 +409,8 @@ public class SignalGenerator {
     
     /**
      * Find historical BUY/SELL signal points for chart visualization
-     * Uses simple but effective crossover strategy:
-     * - BUY: When EMA12 crosses above SMA50 + RSI support + Volume
-     * - SELL: When EMA12 crosses below SMA50 + RSI resistance + Volume
+     * ENHANCED VERSION - Multiple confirmations required for HIGH PRECISION
+     * Uses: EMA/SMA crossover + RSI + Volume + Price Action + Confluence
      */
     public static List<TradePoint> findHistoricalSignals(List<StockData> data,
                                                          double[] sma20, double[] sma50, 
@@ -263,6 +420,10 @@ public class SignalGenerator {
         if (data.size() < 60) {
             return signals; // Not enough data
         }
+        
+        // Calculate additional indicators for confluence
+        double[] ema50 = TechnicalIndicators.calculateEMA(data, 50);
+        TechnicalIndicators.MACDResult macd = TechnicalIndicators.calculateMACD(data, 12, 26, 9);
         
         // Calculate average volume for reference
         double[] avgVolume = new double[data.size()];
@@ -274,86 +435,190 @@ public class SignalGenerator {
             avgVolume[i] = sum / 20.0;
         }
         
-        // Scan for crossover signals (start from index 50 to have enough data)
-        for (int i = 51; i < data.size() - 1; i++) {
+        // Scan for HIGH-CONFIDENCE signals (start from index 60 for more data)
+        for (int i = 60; i < data.size() - 1; i++) {
             // Skip if any indicator is NaN
             if (Double.isNaN(ema12[i]) || Double.isNaN(ema12[i-1]) ||
                 Double.isNaN(sma20[i]) || Double.isNaN(sma20[i-1]) ||
                 Double.isNaN(sma50[i]) || Double.isNaN(sma50[i-1]) ||
-                Double.isNaN(rsi[i])) {
+                Double.isNaN(ema50[i]) || Double.isNaN(rsi[i])) {
                 continue;
             }
             
             double currentPrice = data.get(i).getClose();
+            double prevPrice = data.get(i-1).getClose();
             double currentVolume = data.get(i).getVolume();
             double volRatio = currentVolume / avgVolume[i];
             
-            // === BUY SIGNALS ===
-            // Signal 1: EMA12 crosses above SMA20 (Golden Cross - fast)
-            if (ema12[i-1] <= sma20[i-1] && ema12[i] > sma20[i] && 
-                rsi[i] > 30 && rsi[i] < 70 && volRatio > 1.2) {
-                signals.add(new TradePoint(i, "BUY", currentPrice, 
-                    "EMA12 x SMA20 Yukarı (RSI:" + String.format("%.0f", rsi[i]) + ")"));
-                i += 5; // Skip next 5 days to avoid duplicates
-                continue;
+            int confirmations = 0;
+            StringBuilder reason = new StringBuilder();
+            
+            // === BUY SIGNALS (MULTI-CONFIRMATION) ===
+            
+            // Check Trend Confirmation
+            boolean bullishTrend = ema12[i] > sma20[i] && sma20[i] > sma50[i];
+            boolean emaRising = ema12[i] > ema12[i-5];
+            
+            // Check Momentum Confirmation
+            boolean rsiHealthy = rsi[i] > 35 && rsi[i] < 70;
+            boolean rsiRising = i >= 3 && rsi[i] > rsi[i-3];
+            
+            // Check Volume Confirmation (STRICTER)
+            boolean strongVolume = volRatio > 2.0; // Increased from 1.2x to 2.0x
+            
+            // Check Price Action
+            boolean priceBreaking = currentPrice > prevPrice;
+            
+            // Check MACD Support
+            boolean macdBullish = !Double.isNaN(macd.macdLine[i]) && 
+                                  !Double.isNaN(macd.signalLine[i]) &&
+                                  macd.macdLine[i] > macd.signalLine[i];
+            
+            // === BUY SIGNAL 1: Golden Cross with Multi-Confirmation ===
+            if (ema12[i-1] <= sma20[i-1] && ema12[i] > sma20[i]) {
+                reason.append("EMA12 x SMA20 ↑");
+                confirmations++;
+                
+                if (rsiHealthy && rsiRising) { confirmations++; reason.append(" + RSI OK"); }
+                if (strongVolume) { confirmations++; reason.append(" + Güçlü Hacim"); }
+                if (bullishTrend) { confirmations++; reason.append(" + Trend"); }
+                if (macdBullish) { confirmations++; reason.append(" + MACD"); }
+                
+                // Require at least 3 confirmations for BUY signal
+                if (confirmations >= 3) {
+                    signals.add(new TradePoint(i, "BUY", currentPrice, reason.toString()));
+                    i += 7; // Skip next 7 days (increased from 5)
+                    continue;
+                }
             }
             
-            // Signal 2: Price bounces from SMA50 support + RSI oversold recovery
+            // === BUY SIGNAL 2: SMA50 Support Bounce (MULTI-LAYER) ===
+            confirmations = 0;
+            reason = new StringBuilder();
+            
             if (i >= 2 && 
-                data.get(i-2).getClose() > sma50[i-2] &&
-                data.get(i-1).getClose() < sma50[i-1] &&
-                currentPrice > sma50[i] &&
-                rsi[i] > 30 && rsi[i] < 50 &&
-                rsi[i] > rsi[i-1] && // RSI recovering
-                volRatio > 1.3) {
-                signals.add(new TradePoint(i, "BUY", currentPrice,
-                    "SMA50 Destek Testi (RSI:" + String.format("%.0f", rsi[i]) + ")"));
-                i += 5;
-                continue;
+                prevPrice < sma50[i-1] * 1.02 && prevPrice > sma50[i-1] * 0.98 && // Near SMA50
+                currentPrice > sma50[i] && currentPrice > prevPrice) { // Bounced up
+                
+                reason.append("SMA50 Destek");
+                confirmations++;
+                
+                if (rsiHealthy && rsi[i] < 50) { confirmations++; reason.append(" + RSI Düşük"); }
+                if (strongVolume) { confirmations++; reason.append(" + Hacim 2x"); }
+                if (emaRising) { confirmations++; reason.append(" + EMA Yükseliş"); }
+                if (macdBullish) { confirmations++; reason.append(" + MACD"); }
+                
+                // Require at least 4 confirmations for support bounce
+                if (confirmations >= 4) {
+                    signals.add(new TradePoint(i, "BUY", currentPrice, reason.toString()));
+                    i += 7;
+                    continue;
+                }
             }
             
-            // Signal 3: RSI oversold bounce (< 30 -> > 35)
-            if (rsi[i-1] < 30 && rsi[i] > 35 && rsi[i] < 50 &&
-                currentPrice > data.get(i-1).getClose() && // Price rising
-                volRatio > 1.4) {
-                signals.add(new TradePoint(i, "BUY", currentPrice,
-                    "RSI Aşırı Satım Çıkışı (" + String.format("%.0f", rsi[i]) + ")"));
-                i += 5;
-                continue;
+            // === BUY SIGNAL 3: RSI Oversold Recovery (STRICT) ===
+            confirmations = 0;
+            reason = new StringBuilder();
+            
+            if (rsi[i-1] < 30 && rsi[i] > 35 && rsi[i] < 55 && priceBreaking) {
+                reason.append("RSI Aşırı Satış Çıkış");
+                confirmations++;
+                
+                if (volRatio > 2.5) { confirmations++; reason.append(" + Aşırı Hacim"); } // Very high volume
+                if (bullishTrend) { confirmations++; reason.append(" + Trend Destekli"); }
+                if (macdBullish) { confirmations++; reason.append(" + MACD"); }
+                if (currentPrice > sma20[i]) { confirmations++; reason.append(" + SMA20 Üstü"); }
+                
+                // Require at least 4 confirmations for oversold reversal
+                if (confirmations >= 4) {
+                    signals.add(new TradePoint(i, "BUY", currentPrice, reason.toString()));
+                    i += 7;
+                    continue;
+                }
             }
             
-            // === SELL SIGNALS ===
-            // Signal 1: EMA12 crosses below SMA20 (Death Cross - fast)
-            if (ema12[i-1] >= sma20[i-1] && ema12[i] < sma20[i] &&
-                rsi[i] > 30 && rsi[i] < 70 && volRatio > 1.2) {
-                signals.add(new TradePoint(i, "SELL", currentPrice,
-                    "EMA12 x SMA20 Aşağı (RSI:" + String.format("%.0f", rsi[i]) + ")"));
-                i += 5;
-                continue;
+            // === SELL SIGNALS (MULTI-CONFIRMATION) ===
+            
+            // Check Bearish Trend
+            boolean bearishTrend = ema12[i] < sma20[i] && sma20[i] < sma50[i];
+            boolean emaFalling = ema12[i] < ema12[i-5];
+            
+            // Check Momentum Weakness
+            boolean rsiWeak = rsi[i] > 30 && rsi[i] < 65;
+            boolean rsiFalling = i >= 3 && rsi[i] < rsi[i-3];
+            
+            // Check Price Action
+            boolean priceBreakdown = currentPrice < prevPrice;
+            
+            // Check MACD Weakness
+            boolean macdBearish = !Double.isNaN(macd.macdLine[i]) && 
+                                  !Double.isNaN(macd.signalLine[i]) &&
+                                  macd.macdLine[i] < macd.signalLine[i];
+            
+            // === SELL SIGNAL 1: Death Cross with Multi-Confirmation ===
+            confirmations = 0;
+            reason = new StringBuilder();
+            
+            if (ema12[i-1] >= sma20[i-1] && ema12[i] < sma20[i]) {
+                reason.append("EMA12 x SMA20 ↓");
+                confirmations++;
+                
+                if (rsiWeak && rsiFalling) { confirmations++; reason.append(" + RSI Zayıf"); }
+                if (strongVolume) { confirmations++; reason.append(" + Güçlü Hacim"); }
+                if (bearishTrend) { confirmations++; reason.append(" + Ayı Trendi"); }
+                if (macdBearish) { confirmations++; reason.append(" + MACD"); }
+                
+                // Require at least 3 confirmations for SELL signal
+                if (confirmations >= 3) {
+                    signals.add(new TradePoint(i, "SELL", currentPrice, reason.toString()));
+                    i += 7;
+                    continue;
+                }
             }
             
-            // Signal 2: Price rejected at SMA50 resistance
+            // === SELL SIGNAL 2: SMA50 Resistance Rejection ===
+            confirmations = 0;
+            reason = new StringBuilder();
+            
             if (i >= 2 &&
-                data.get(i-2).getClose() < sma50[i-2] &&
-                data.get(i-1).getClose() > sma50[i-1] &&
-                currentPrice < sma50[i] &&
-                rsi[i] > 50 && rsi[i] < 70 &&
-                rsi[i] < rsi[i-1] && // RSI weakening
-                volRatio > 1.3) {
-                signals.add(new TradePoint(i, "SELL", currentPrice,
-                    "SMA50 Direnç Reddi (RSI:" + String.format("%.0f", rsi[i]) + ")"));
-                i += 5;
-                continue;
+                prevPrice > sma50[i-1] * 0.98 && prevPrice < sma50[i-1] * 1.02 && // Near SMA50
+                currentPrice < sma50[i] && currentPrice < prevPrice) { // Rejected down
+                
+                reason.append("SMA50 Direnç");
+                confirmations++;
+                
+                if (rsiWeak && rsi[i] > 50) { confirmations++; reason.append(" + RSI Yüksek"); }
+                if (strongVolume) { confirmations++; reason.append(" + Hacim 2x"); }
+                if (emaFalling) { confirmations++; reason.append(" + EMA Düşüş"); }
+                if (macdBearish) { confirmations++; reason.append(" + MACD"); }
+                
+                // Require at least 4 confirmations for resistance rejection
+                if (confirmations >= 4) {
+                    signals.add(new TradePoint(i, "SELL", currentPrice, reason.toString()));
+                    i += 7;
+                    continue;
+                }
             }
             
-            // Signal 3: RSI overbought reversal (> 70 -> < 65)
-            if (rsi[i-1] > 70 && rsi[i] < 65 && rsi[i] > 50 &&
-                currentPrice < data.get(i-1).getClose() && // Price falling
-                volRatio > 1.4) {
-                signals.add(new TradePoint(i, "SELL", currentPrice,
-                    "RSI Aşırı Alım Dönüşü (" + String.format("%.0f", rsi[i]) + ")"));
-                i += 5;
-                continue;
+            // === SELL SIGNAL 3: RSI Overbought Reversal (STRICT) ===
+            confirmations = 0;
+            reason = new StringBuilder();
+            
+            if (rsi[i-1] > 70 && rsi[i] < 65 && rsi[i] > 45 && priceBreakdown) {
+                reason.append("RSI Aşırı Alım Dönüş");
+                confirmations++;
+                
+                if (volRatio > 2.5) { confirmations++; reason.append(" + Aşırı Hacim"); }
+                if (bearishTrend) { confirmations++; reason.append(" + Ayı Trendi"); }
+                if (macdBearish) { confirmations++; reason.append(" + MACD"); }
+                if (currentPrice < sma20[i]) { confirmations++; reason.append(" + SMA20 Altı"); }
+                
+                // Require at least 4 confirmations for overbought reversal
+                if (confirmations >= 4) {
+                    signals.add(new TradePoint(i, "SELL", currentPrice, reason.toString()));
+                    i += 7;
+                    continue;
+                }
             }
         }
         
