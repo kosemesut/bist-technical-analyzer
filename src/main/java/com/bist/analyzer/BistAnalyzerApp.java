@@ -163,7 +163,7 @@ public class BistAnalyzerApp {
                             double[] ema12 = TechnicalIndicators.calculateEMA(data, 12);
                             double[] rsi = TechnicalIndicators.calculateRSI(data, 14);
                             
-                            ChartGenerator.generateTechnicalChart(stock, data, sma20, sma50, ema12, rsi, CHARTS_DIR + "/" + stock + "_chart.png");
+                            ChartGenerator.generateTechnicalChart(stock, data, sma20, sma50, ema12, rsi, CHARTS_DIR + "/" + stock + "_chart.png", lastSignal);
                         }
                     }
                 }

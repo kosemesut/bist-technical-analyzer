@@ -46,6 +46,15 @@ public class ChartGenerator {
     public static void generateTechnicalChart(String symbol, List<StockData> data, 
                                             double[] sma20, double[] sma50, double[] ema12,
                                             double[] rsi, String outputPath) throws IOException {
+        generateTechnicalChart(symbol, data, sma20, sma50, ema12, rsi, outputPath, null);
+    }
+    
+    /**
+     * Generate technical chart with optional current signal (last day's signal)
+     */
+    public static void generateTechnicalChart(String symbol, List<StockData> data, 
+                                            double[] sma20, double[] sma50, double[] ema12,
+                                            double[] rsi, String outputPath, SignalGenerator.SignalResult currentSignal) throws IOException {
         if (data.isEmpty()) {
             System.out.println("No data available for technical chart generation");
             return;
@@ -59,6 +68,52 @@ public class ChartGenerator {
         
         // Find historical BUY/SELL signals
         List<SignalGenerator.TradePoint> tradeSignals = SignalGenerator.findHistoricalSignals(data, sma20, sma50, ema12, rsi);
+        
+        // Add current signal if provided (last day's signal)
+        if (currentSignal != null && !data.isEmpty()) {
+            // Check if the last historical signal is from the same day as current signal
+            // If not, add the current signal to the chart
+            StockData currentData = data.get(data.size() - 1);
+            
+            if (!tradeSignals.isEmpty()) {
+                SignalGenerator.TradePoint lastSignal = tradeSignals.get(tradeSignals.size() - 1);
+                StockData lastData = data.get(lastSignal.index);
+                
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                String lastSignalDate = sdf.format(new Date(lastData.getTimestamp()));
+                String currentDate = sdf.format(new Date(currentData.getTimestamp()));
+                
+                // Add current signal if it's from a different day than the last historical signal
+                if (!lastSignalDate.equals(currentDate)) {
+                    String signalType = null;
+                    if (currentSignal.signal.equals("STRONG_BUY") || currentSignal.signal.equals("BUY")) {
+                        signalType = "BUY";
+                    } else if (currentSignal.signal.equals("STRONG_SELL") || currentSignal.signal.equals("SELL")) {
+                        signalType = "SELL";
+                    }
+                    
+                    if (signalType != null) {
+                        double price = currentData.getClose();
+                        String reason = "Son Gün: " + currentSignal.signal.replace("_", " ");
+                        tradeSignals.add(new SignalGenerator.TradePoint(data.size() - 1, signalType, price, reason));
+                    }
+                }
+            } else if (currentSignal != null) {
+                // Add current signal if no historical signals exist
+                String signalType = null;
+                if (currentSignal.signal.equals("STRONG_BUY") || currentSignal.signal.equals("BUY")) {
+                    signalType = "BUY";
+                } else if (currentSignal.signal.equals("STRONG_SELL") || currentSignal.signal.equals("SELL")) {
+                    signalType = "SELL";
+                }
+                
+                if (signalType != null) {
+                    double price = currentData.getClose();
+                    String reason = "Son Gün: " + currentSignal.signal.replace("_", " ");
+                    tradeSignals.add(new SignalGenerator.TradePoint(data.size() - 1, signalType, price, reason));
+                }
+            }
+        }
 
         // Build HTML with Plotly.js
         StringBuilder html = new StringBuilder();
