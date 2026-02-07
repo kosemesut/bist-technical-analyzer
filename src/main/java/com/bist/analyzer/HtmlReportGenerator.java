@@ -520,6 +520,7 @@ public class HtmlReportGenerator {
 
     /**
      * Append compact price changes for signal table
+     * Extracts daily closing prices from hourly data and calculates changes based on those
      */
     private static void appendCompactPriceChanges(StringBuilder html, String symbol, double currentPrice,
                                                   Map<String, List<StockData>> allData) {
@@ -529,26 +530,153 @@ public class HtmlReportGenerator {
             return;
         }
 
-        int lastIdx = data.size() - 1;
+        // Extract daily closing prices from data (works for both hourly and daily data)
+        List<Double> dailyCloses = extractDailyClosingPrices(data);
+        if (dailyCloses.isEmpty()) {
+            html.append("<span class=\"price-change-item\">Veri yok</span>");
+            return;
+        }
+
+        int lastDayIdx = dailyCloses.size() - 1;
         
-        // 1 day
-        appendCompactChange(html, "1g", data, lastIdx, 1, currentPrice);
+        // 1 day (1 gün - 1 trading day back)
+        appendCompactChangeDaily(html, "1g", dailyCloses, lastDayIdx, 1, currentPrice);
         html.append(" ");
         
-        // 1 week
-        appendCompactChange(html, "1h", data, lastIdx, 5, currentPrice);
+        // 5 days (5 gün - 5 trading days back / 1 hafta)
+        appendCompactChangeDaily(html, "5g", dailyCloses, lastDayIdx, 5, currentPrice);
         html.append(" ");
         
-        // 1 month
-        appendCompactChange(html, "1a", data, lastIdx, 20, currentPrice);
+        // 1 month (1 ay - 20 trading days back)
+        appendCompactChangeDaily(html, "1a", dailyCloses, lastDayIdx, 20, currentPrice);
         html.append(" ");
         
-        // 3 months
-        appendCompactChange(html, "3a", data, lastIdx, 60, currentPrice);
+        // 3 months (3 ay - 60 trading days back) - if not available, use maximum with "3a" label
+        appendCompactChangeDailyWithFallback(html, "3a", dailyCloses, lastDayIdx, 60, currentPrice);
         html.append(" ");
         
-        // 1 year
-        appendCompactChange(html, "1y", data, lastIdx, 252, currentPrice);
+        // 1 year (1 yıl - 252 trading days back) - if available show it
+        if (lastDayIdx >= 252) {
+            appendCompactChangeDaily(html, "1y", dailyCloses, lastDayIdx, 252, currentPrice);
+        }
+    }
+
+    /**
+     * Extract daily closing prices from stock data
+     * Groups by date and returns the last (closing) price of each day
+     */
+    private static List<Double> extractDailyClosingPrices(List<StockData> data) {
+        if (data.isEmpty()) return new ArrayList<>();
+        
+        Map<String, Double> dayClosePrices = new LinkedHashMap<>();
+        java.time.format.DateTimeFormatter dateFormatter = java.time.format.DateTimeFormatter
+            .ofPattern("yyyy-MM-dd")
+            .withZone(java.time.ZoneId.of("Europe/Istanbul"));
+        
+        for (StockData point : data) {
+            String dateKey = dateFormatter.format(java.time.Instant.ofEpochMilli(point.getTimestamp()));
+            dayClosePrices.put(dateKey, point.getClose()); // Last price of day overwrites previous
+        }
+        
+        return new ArrayList<>(dayClosePrices.values());
+    }
+
+    /**
+     * Append price change based on daily closing prices
+     */
+    private static void appendCompactChangeDaily(StringBuilder html, String label, List<Double> dailyCloses,
+                                                 int lastDayIdx, int daysBack, double currentPrice) {
+        int targetIdx = lastDayIdx - daysBack;
+        if (targetIdx < 0 || targetIdx >= dailyCloses.size()) {
+            html.append("<span class=\"price-change-item\"><span class=\"price-change-label\">").append(label)
+                .append(":</span> -</span>");
+            return;
+        }
+
+        double oldPrice = dailyCloses.get(targetIdx);
+        if (oldPrice <= 0) {
+            html.append("<span class=\"price-change-item\"><span class=\"price-change-label\">").append(label)
+                .append(":</span> -</span>");
+            return;
+        }
+
+        double changePercent = ((currentPrice - oldPrice) / oldPrice) * 100;
+
+        String colorClass = changePercent >= 0 ? "positive" : "negative";
+        String arrow = changePercent >= 0 ? "▲" : "▼";
+
+        html.append("<span class=\"price-change-item\"><span class=\"price-change-label\">").append(label)
+            .append(":</span> <span class=\"").append(colorClass).append("\">")
+            .append(arrow).append(String.format("%.1f%%", Math.abs(changePercent)))
+            .append("</span></span>");
+    }
+
+    /**
+     * Append price change with fallback: if requested period not available, use max available data
+     */
+    private static void appendCompactChangeDailyWithFallback(StringBuilder html, String label, 
+                                                             List<Double> dailyCloses, int lastDayIdx,
+                                                             int daysBack, double currentPrice) {
+        // Try requested period first
+        int targetIdx = lastDayIdx - daysBack;
+        if (targetIdx >= 0 && targetIdx < dailyCloses.size()) {
+            appendCompactChangeDaily(html, label, dailyCloses, lastDayIdx, daysBack, currentPrice);
+            return;
+        }
+        
+        // If requested period not available, use all available data
+        if (lastDayIdx > 0) {
+            double oldPrice = dailyCloses.get(0);
+            if (oldPrice > 0) {
+                double changePercent = ((currentPrice - oldPrice) / oldPrice) * 100;
+                String colorClass = changePercent >= 0 ? "positive" : "negative";
+                String arrow = changePercent >= 0 ? "▲" : "▼";
+                
+                html.append("<span class=\"price-change-item\"><span class=\"price-change-label\">").append(label)
+                    .append(":</span> <span class=\"").append(colorClass).append("\">")
+                    .append(arrow).append(String.format("%.1f%%", Math.abs(changePercent)))
+                    .append("</span></span>");
+            } else {
+                html.append("<span class=\"price-change-item\"><span class=\"price-change-label\">").append(label)
+                    .append(":</span> -</span>");
+            }
+        } else {
+            html.append("<span class=\"price-change-item\"><span class=\"price-change-label\">").append(label)
+                .append(":</span> -</span>");
+        }
+    }
+
+    /**
+     * Append price change with fallback label if requested period not available
+     */
+    private static void appendCompactChangeWithFallback(StringBuilder html, String primaryLabel, 
+                                                        String fallbackLabel, List<StockData> data,
+                                                        int lastIdx, int primaryDaysBack, int maxDaysBack,
+                                                        double currentPrice) {
+        // Try primary period first
+        int targetIdx = lastIdx - primaryDaysBack;
+        if (targetIdx >= 0 && targetIdx < data.size()) {
+            appendCompactChange(html, primaryLabel, data, lastIdx, primaryDaysBack, currentPrice);
+            return;
+        }
+        
+        // If primary not available, use maximum available data with fallback label
+        if (lastIdx > 0) {
+            double oldPrice = data.get(0).getClose();
+            double changePercent = ((currentPrice - oldPrice) / oldPrice) * 100;
+
+            String colorClass = changePercent >= 0 ? "positive" : "negative";
+            String arrow = changePercent >= 0 ? "▲" : "▼";
+            
+            // Show label as fallbackLabel to indicate this is max available, not actual 3a
+            html.append("<span class=\"price-change-item\"><span class=\"price-change-label\">").append(fallbackLabel)
+                .append(":</span> <span class=\"").append(colorClass).append("\">")
+                .append(arrow).append(String.format("%.1f%%", Math.abs(changePercent)))
+                .append("</span></span>");
+        } else {
+            html.append("<span class=\"price-change-item\"><span class=\"price-change-label\">").append(fallbackLabel)
+                .append(":</span> -</span>");
+        }
     }
 
     private static void appendCompactChange(StringBuilder html, String label, List<StockData> data,

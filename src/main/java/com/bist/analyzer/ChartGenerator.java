@@ -12,6 +12,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.LinkedHashMap;
 import java.util.ArrayList;
+import java.util.TimeZone;
 
 /**
  * Interactive chart generator using Plotly.js
@@ -264,8 +265,14 @@ public class ChartGenerator {
         List<String> signals = new ArrayList<>();
         List<String> dayNames = new ArrayList<>();
         SimpleDateFormat dayNameFormat = new SimpleDateFormat("EEEE", new Locale("tr", "TR"));
+        dayNameFormat.setTimeZone(TimeZone.getTimeZone("Europe/Istanbul"));
         
+        // Initialize prevClose from the last data point before our range (if available)
         double prevClose = 0;
+        if (startIndex > 0) {
+            prevClose = data.get(startIndex - 1).getClose();
+        }
+        
         for (DailyData daily : dailyMap.values()) {
             dailyDates.add(daily.date);
             dailyOpens.add(daily.open);
@@ -278,10 +285,13 @@ public class ChartGenerator {
             String dayName = dayNameFormat.format(new Date(daily.timestamp));
             dayNames.add(dayName);
             
-            // Calculate daily change % (vs previous day's close)
+            // Calculate daily change % (vs previous day's close, or vs opening if first day)
             double change = 0;
             if (prevClose > 0) {
                 change = ((daily.close - prevClose) / prevClose) * 100;
+            } else if (daily.open > 0) {
+                // If no previous close available (first day), use intraday change
+                change = ((daily.close - daily.open) / daily.open) * 100;
             }
             if (Double.isNaN(change) || Double.isInfinite(change)) {
                 change = 0.0;
