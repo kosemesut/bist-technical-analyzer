@@ -20,6 +20,10 @@
         // Data preparation
         var dates = []
 
+        var priceText = []
+
+        var signalText = []
+
         var prices = [];
 
         var dailyChanges = []
@@ -40,12 +44,13 @@
         var tracePrice = {
             x: dates,
             y: prices,
+            text: priceText,
             customdata: dailyChanges,
             type: 'scatter',
             mode: 'lines',
             name: 'Kapanış Fiyatı',
             line: { color: '#1a1a1a', width: 2 },
-            hovertemplate: '<b>%{x|%Y-%m-%d %H:%M}</b><br>Fiyat: %{y:.2f} TL<br>Günlük Değişim: %{customdata:.2f}%<extra></extra>',
+            hovertemplate: '<b>%{text}</b><br>Fiyat: %{y:.2f} TL<br>Günlük Değişim: %{customdata:.2f}%<extra></extra>',
             yaxis: 'y'
         };
 
@@ -92,16 +97,21 @@
         signalLine.sort((a, b) => new Date(a.date) - new Date(b.date));
         var signalLineX = signalLine.map(p => p.date);
         var signalLineY = signalLine.map(p => p.price);
+        var signalLineText = signalLine.map(p => {
+            var parts = p.date.split(' ');
+            return '<b>' + parts[0] + '</b>' + '\nSinyal Saati: ' + parts[1];
+        });
 
         var traceSignalLine = {
             x: signalLineX,
             y: signalLineY,
+            text: signalLineText,
             type: 'scatter',
             mode: 'lines+markers',
             name: 'Sinyal Fiyatı (Turuncu)',
             line: { color: '#F97316', width: 2, dash: 'solid' },
             marker: { color: '#F97316', size: 6 },
-            hovertemplate: '<b>%{x|%Y-%m-%d %H:%M}</b><br>Sinyal Fiyatı: %{y:.2f} TL<extra></extra>',
+            hovertemplate: '%{text}<br>Sinyal Fiyatı: %{y:.2f} TL<extra></extra>',
             yaxis: 'y'
         };
 
@@ -113,7 +123,7 @@
             mode: 'markers',
             name: 'AL Sinyali',
             marker: { color: '#22C55E', size: 12, symbol: 'triangle-up', line: { color: '#fff', width: 2 } },
-            hovertemplate: '<b>%{x|%Y-%m-%d %H:%M}</b><br>Fiyat: %{y:.2f} TL<br>%{text}<extra></extra>',
+            hovertemplate: '%{text}<br>Fiyat: %{y:.2f} TL<extra></extra>',
             yaxis: 'y'
         };
 
@@ -125,7 +135,7 @@
             mode: 'markers',
             name: 'SAT Sinyali',
             marker: { color: '#EF4444', size: 12, symbol: 'triangle-down', line: { color: '#fff', width: 2 } },
-            hovertemplate: '<b>%{x|%Y-%m-%d %H:%M}</b><br>Fiyat: %{y:.2f} TL<br>%{text}<extra></extra>',
+            hovertemplate: '%{text}<br>Fiyat: %{y:.2f} TL<extra></extra>',
             yaxis: 'y'
         };
 
