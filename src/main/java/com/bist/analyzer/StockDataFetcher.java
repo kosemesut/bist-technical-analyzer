@@ -52,8 +52,10 @@ public class StockDataFetcher {
             in.close();
             
             JSONObject json = new JSONObject(response.toString());
-            JSONObject result = json.getJSONObject("chart").getJSONArray("result").getJSONObject(0);
-            JSONObject quote = result.getJSONObject("quote");
+                JSONObject result = json.getJSONObject("chart").getJSONArray("result").getJSONObject(0);
+                JSONObject indicators = result.getJSONObject("indicators");
+                JSONArray quoteArr = indicators.getJSONArray("quote");
+                JSONObject quote = quoteArr.getJSONObject(0);
             
             JSONArray timestamps = result.getJSONArray("timestamp");
             JSONArray closes = quote.getJSONArray("close");
@@ -69,7 +71,19 @@ public class StockDataFetcher {
                     double high = highs.isNull(i) ? 0 : highs.getDouble(i);
                     double low = lows.isNull(i) ? 0 : lows.getDouble(i);
                     double close = closes.isNull(i) ? 0 : closes.getDouble(i);
-                    long volume = volumes.isNull(i) ? 0 : volumes.getLong(i);
+                    
+                    // Try to get volume - handle both int and long types
+                    long volume = 0;
+                    try {
+                        if (!volumes.isNull(i)) {
+                            Object volObj = volumes.get(i);
+                            if (volObj instanceof Number) {
+                                volume = ((Number) volObj).longValue();
+                            }
+                        }
+                    } catch (Exception ve) {
+                        volume = 0;
+                    }
                     
                     if (close > 0) { // Only add valid data
                         dataList.add(new StockData(symbol, timestamp, open, high, low, close, volume));

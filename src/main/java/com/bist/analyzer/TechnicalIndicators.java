@@ -188,6 +188,159 @@ public class TechnicalIndicators {
         return bb;
     }
 
+    /**
+     * Calculate ATR (Average True Range) - volatility indicator
+     */
+    public static double[] calculateATR(List<StockData> data, int period) {
+        double[] tr = new double[data.size()];
+        double[] atr = new double[data.size()];
+        
+        // Calculate True Range
+        for (int i = 0; i < data.size(); i++) {
+            if (i == 0) {
+                tr[i] = data.get(i).getHigh() - data.get(i).getLow();
+            } else {
+                double highLow = data.get(i).getHigh() - data.get(i).getLow();
+                double highClose = Math.abs(data.get(i).getHigh() - data.get(i - 1).getClose());
+                double lowClose = Math.abs(data.get(i).getLow() - data.get(i - 1).getClose());
+                tr[i] = Math.max(highLow, Math.max(highClose, lowClose));
+            }
+        }
+        
+        // Calculate ATR (EMA of TR)
+        for (int i = 0; i < data.size(); i++) {
+            if (i < period - 1) {
+                atr[i] = Double.NaN;
+            } else if (i == period - 1) {
+                double sum = 0;
+                for (int j = 0; j <= i; j++) {
+                    sum += tr[j];
+                }
+                atr[i] = sum / period;
+            } else {
+                atr[i] = (atr[i - 1] * (period - 1) + tr[i]) / period;
+            }
+        }
+        
+        return atr;
+    }
+
+    /**
+     * Calculate OBV (On-Balance Volume) - volume indicator
+     */
+    public static double[] calculateOBV(List<StockData> data) {
+        double[] obv = new double[data.size()];
+        
+        obv[0] = data.get(0).getVolume();
+        
+        for (int i = 1; i < data.size(); i++) {
+            if (data.get(i).getClose() > data.get(i - 1).getClose()) {
+                obv[i] = obv[i - 1] + data.get(i).getVolume();
+            } else if (data.get(i).getClose() < data.get(i - 1).getClose()) {
+                obv[i] = obv[i - 1] - data.get(i).getVolume();
+            } else {
+                obv[i] = obv[i - 1];
+            }
+        }
+        
+        return obv;
+    }
+
+    /**
+     * Get highest high over period
+     */
+    public static double getHighestHigh(List<StockData> data, int endIndex, int period) {
+        if (endIndex < period - 1) return Double.NaN;
+        
+        double highest = data.get(endIndex - period + 1).getHigh();
+        for (int i = endIndex - period + 2; i <= endIndex; i++) {
+            highest = Math.max(highest, data.get(i).getHigh());
+        }
+        return highest;
+    }
+
+    /**
+     * Get lowest low over period
+     */
+    public static double getLowestLow(List<StockData> data, int endIndex, int period) {
+        if (endIndex < period - 1) return Double.NaN;
+        
+        double lowest = data.get(endIndex - period + 1).getLow();
+        for (int i = endIndex - period + 2; i <= endIndex; i++) {
+            lowest = Math.min(lowest, data.get(i).getLow());
+        }
+        return lowest;
+    }
+
+    /**
+     * Calculate slope of values over period
+     */
+    public static double calculateSlope(double[] values, int endIndex, int period) {
+        if (endIndex < period - 1 || Double.isNaN(values[endIndex])) return Double.NaN;
+        
+        double sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+        int n = 0;
+        
+        for (int i = endIndex - period + 1; i <= endIndex; i++) {
+            if (!Double.isNaN(values[i])) {
+                double x = i - (endIndex - period + 1);
+                double y = values[i];
+                sumX += x;
+                sumY += y;
+                sumXY += x * y;
+                sumX2 += x * x;
+                n++;
+            }
+        }
+        
+        if (n < 2) return Double.NaN;
+        
+        return (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+    }
+
+    /**
+     * Calculate average volume over period
+     */
+    public static double getAverageVolume(List<StockData> data, int endIndex, int period) {
+        if (endIndex < period - 1) return Double.NaN;
+        
+        double sum = 0;
+        for (int i = endIndex - period + 1; i <= endIndex; i++) {
+            sum += data.get(i).getVolume();
+        }
+        return sum / period;
+    }
+
+    /**
+     * Get highest value in array over period
+     */
+    public static double getHighestValue(double[] values, int endIndex, int period) {
+        if (endIndex < period - 1) return Double.NaN;
+        
+        double highest = values[endIndex - period + 1];
+        for (int i = endIndex - period + 2; i <= endIndex; i++) {
+            if (!Double.isNaN(values[i])) {
+                highest = Math.max(highest, values[i]);
+            }
+        }
+        return highest;
+    }
+
+    /**
+     * Get lowest value in array over period
+     */
+    public static double getLowestValue(double[] values, int endIndex, int period) {
+        if (endIndex < period - 1) return Double.NaN;
+        
+        double lowest = values[endIndex - period + 1];
+        for (int i = endIndex - period + 2; i <= endIndex; i++) {
+            if (!Double.isNaN(values[i])) {
+                lowest = Math.min(lowest, values[i]);
+            }
+        }
+        return lowest;
+    }
+
     private static double[] convertToList(List<StockData> data, double[] values) {
         return values;
     }
