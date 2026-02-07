@@ -185,8 +185,15 @@ public class ChartGenerator {
             html.append(String.format(Locale.US, "%.2f", data.get(i).getClose()));
         }
         html.append("];\n\n");
-        
-        // SMA20
+                // Daily change %
+        html.append("        var dailyChanges = [");
+        for (int i = startIndex; i < data.size(); i++) {
+            if (i > startIndex) html.append(", ");
+            double dailyChange = (data.get(i).getClose() - data.get(i).getOpen()) / data.get(i).getOpen() * 100;
+            html.append(String.format(Locale.US, "%.2f", dailyChange));
+        }
+        html.append("]\n\n");
+                // SMA20
         html.append("        var sma20 = [");
         for (int i = startIndex; i < sma20.length; i++) {
             if (i > startIndex) html.append(", ");
@@ -269,11 +276,12 @@ public class ChartGenerator {
         html.append("        var tracePrice = {\n");
         html.append("            x: dates,\n");
         html.append("            y: prices,\n");
+        html.append("            customdata: dailyChanges,\n");
         html.append("            type: 'scatter',\n");
         html.append("            mode: 'lines',\n");
         html.append("            name: 'Kapanış Fiyatı',\n");
         html.append("            line: { color: '#1a1a1a', width: 2 },\n");
-        html.append("            hovertemplate: '<b>%{x|%Y-%m-%d %H:%M}</b><br>Fiyat: %{y:.2f} TL<extra></extra>',\n");
+        html.append("            hovertemplate: '<b>%{x|%Y-%m-%d %H:%M}</b><br>Fiyat: %{y:.2f} TL<br>Günlük Değişim: %{customdata:.2f}%<extra></extra>',\n");
         html.append("            yaxis: 'y'\n");
         html.append("        };\n\n");
         
