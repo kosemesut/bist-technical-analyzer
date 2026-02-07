@@ -96,6 +96,13 @@ public class HtmlReportGenerator {
         html.append("        </div>\n");
         html.append("    </section>\n");
         
+        // Dynamic Chart Viewer Section
+        html.append("    <section id=\"dynamicChartViewer\" class=\"chart-viewer\" style=\"display: none; margin-top: 40px;\">\n");
+        html.append("        <h2>📊 Grafik Görüntüleyici</h2>\n");
+        html.append("        <p style=\"color: #666; margin-bottom: 20px;\">Tablodan bir hisse seçerek bu alanda grafiğini görüntüleyebilirsiniz.</p>\n");
+        html.append("        <iframe id=\"dynamicChart\" src=\"\" style=\"width: 100%; height: 900px; border: 2px solid #667eea; border-radius: 5px;\" frameborder=\"0\" title=\"Dinamik Grafik Görüntüleyici\"></iframe>\n");
+        html.append("    </section>\n");
+        
         html.append("    <footer>\n");
         html.append("        <p><strong>Uyarı:</strong> Bu analiz sadece bilgilendirme amaçlıdır. Yatırım kararlarından önce daima kendi araştırmanızı yapınız.</p>\n");
         html.append("        <p>BİST Teknik Analiz Sistemi | Veriler Yahoo Finance'tan alınmıştır</p>\n");
@@ -114,17 +121,23 @@ public class HtmlReportGenerator {
 
     private static void generateSignalTable(StringBuilder html, List<SignalGenerator.SignalResult> signals,
                                             Map<String, List<StockData>> allData) {
+        html.append("        <div style=\"margin-bottom: 20px;\">\n");
+        html.append("            <input type=\"text\" id=\"stockSearch\" placeholder=\"Hisse sembolü veya adı ile ara (ör: SOKM, Soda)\" \n");
+        html.append("                   style=\"width: 100%; padding: 12px; border: 2px solid #667eea; border-radius: 5px; font-size: 14px;\">\n");
+        html.append("        </div>\n");
+        
         html.append("        <table class=\"signals-table\">\n");
         html.append("            <thead>\n");
         html.append("                <tr>\n");
         html.append("                    <th>Hisse</th>\n");
+        html.append("                    <th>Adı</th>\n");
         html.append("                    <th>Güncel Fiyat</th>\n");
         html.append("                    <th>Sinyal</th>\n");
         html.append("                    <th>Güven</th>\n");
         html.append("                    <th>Fiyat Değişimleri</th>\n");
         html.append("                </tr>\n");
         html.append("            </thead>\n");
-        html.append("            <tbody>\n");
+        html.append("            <tbody id=\"signalsTableBody\">\n");
         
         // Read priority stocks from stock_list.txt
         List<String> priorityStocks = readPriorityStocks();
@@ -166,10 +179,15 @@ public class HtmlReportGenerator {
         for (SignalGenerator.SignalResult signal : sortedSignals) {
             String signalClass = signal.signal.toLowerCase().replace("_", "-");
             String signalText = getSignalTextTR(signal.signal);
-            html.append("                <tr class=\"signal-").append(signalClass).append("\">\n");
-            html.append("                    <td><strong><a href=\"#detail-").append(signal.symbol)
-                .append("\" class=\"stock-link\">").append(signal.symbol).append("</a></strong></td>\n");
-            html.append("                    <td>").append(String.format("%.2f ₺", signal.price)).append("</td>\n");
+            String stockName = getStockName(signal.symbol);
+            
+            html.append("                <tr class=\"signal-").append(signalClass).append("\" data-symbol=\"")
+                .append(signal.symbol).append("\" data-name=\"").append(stockName).append("\">\n");
+            html.append("                    <td><strong><a href=\"#\" onclick=\"loadChart('").append(signal.symbol)
+                .append("'); return false;\" class=\"stock-link\" style=\"cursor: pointer;\">")
+                .append(signal.symbol).append("</a></strong></td>\n");
+            html.append("                    <td>").append(stockName).append("</td>\n");
+            html.append("                    <td>").append(String.format("%.2f TL", signal.price)).append("</td>\n");
             html.append("                    <td><span class=\"signal-badge signal-").append(signalClass).append("\">")
                 .append(signalText).append("</span></td>\n");
             html.append("                    <td>").append(String.format("%.0f%%", signal.confidence)).append("</td>\n");
@@ -313,15 +331,44 @@ public class HtmlReportGenerator {
             "            modalImg.src = this.src;" +
             "        };" +
             "    }" +
-            "    closeBtn.onclick = function() {" +
-            "        modal.style.display = 'none';" +
-            "    };" +
-            "    modal.onclick = function(e) {" +
-            "        if (e.target === modal) {" +
+            "    if(closeBtn) {" +
+            "        closeBtn.onclick = function() {" +
             "            modal.style.display = 'none';" +
-            "        }" +
-            "    };" +
-            "});";
+            "        };" +
+            "    }" +
+            "    if(modal) {" +
+            "        modal.onclick = function(e) {" +
+            "            if (e.target === modal) {" +
+            "                modal.style.display = 'none';" +
+            "            }" +
+            "        };" +
+            "    }" +
+            "    setupSearch();" +
+            "});" +
+            "function setupSearch() {" +
+            "    var searchBox = document.getElementById('stockSearch');" +
+            "    var tableBody = document.getElementById('signalsTableBody');" +
+            "    if (!searchBox || !tableBody) return;" +
+            "    searchBox.addEventListener('keyup', function() {" +
+            "        var query = searchBox.value.toLowerCase();" +
+            "        var rows = tableBody.querySelectorAll('tr');" +
+            "        rows.forEach(function(row) {" +
+            "            var symbol = row.cells[0] ? row.cells[0].textContent.toLowerCase() : '';" +
+            "            var name = row.cells[1] ? row.cells[1].textContent.toLowerCase() : '';" +
+            "            row.style.display = (symbol.includes(query) || name.includes(query)) ? '' : 'none';" +
+            "        });" +
+            "    });" +
+            "}" +
+            "function loadChart(symbol) {" +
+            "    var chartViewer = document.getElementById('dynamicChartViewer');" +
+            "    if (!chartViewer) return;" +
+            "    var iframe = chartViewer.querySelector('iframe');" +
+            "    if (iframe) {" +
+            "        iframe.src = 'charts/' + symbol + '_chart.html';" +
+            "        chartViewer.style.display = 'block';" +
+            "        chartViewer.scrollIntoView({behavior: 'smooth'});" +
+            "    }" +
+            "}";
     }
 
     private static int getSignalValue(String signal) {
@@ -531,5 +578,61 @@ public class HtmlReportGenerator {
             System.err.println("Warning: Could not read priority stocks: " + e.getMessage());
         }
         return priorityStocks;
+    }
+    
+    private static String getStockName(String symbol) {
+        // Map of BIST stocks to their company names
+        // Add more as needed
+        Map<String, String> stockNames = new HashMap<>();
+        
+        // Bank stocks
+        stockNames.put("AKBNK", "Akbank T.A.Ş.");
+        stockNames.put("ALBRK", "Albaraka Türk Katılım Bankası A.Ş.");
+        stockNames.put("DENIZ", "Denizbank A.Ş.");
+        stockNames.put("GARAN", "Garanti BBVA Bankası A.Ş.");
+        stockNames.put("HALKB", "Türkiye Halk Bankası A.Ş.");
+        stockNames.put("ICBCT", "İçbank Türk A.Ş.");
+        stockNames.put("ISBAK", "İş Bankası A.Ş.");
+        stockNames.put("QNBFB", "QNB Finansbank A.Ş.");
+        stockNames.put("SBANK", "Sberbank Türk A.Ş.");
+        stockNames.put("TBNK", "Türkiye Bankası A.Ş.");
+        stockNames.put("VAKBN", "Vakıfbank Türk A.Ş.");
+        
+        // Insurance
+        stockNames.put("AKGRT", "Ak Grt. Türkiye Sigorta A.Ş.");
+        stockNames.put("ANSGRT", "Anadolu Sigorta A.Ş.");
+        
+        // Energy
+        stockNames.put("AENERJI", "Aksa Elektrik Üretim A.Ş.");
+        stockNames.put("CESEN", "Çeşme Elektrik San. A.Ş.");
+        stockNames.put("DOAS", "Doğuş Oto Pazarlama A.Ş.");
+        stockNames.put("ENEOS", "Eneos Enerji A.Ş.");
+        
+        // Industry
+        stockNames.put("IEMAS", "İntek Elektrik Mak. Esas San. A.Ş.");
+        stockNames.put("IZMIT", "İzmitçimento San. Ticaret A.Ş.");
+        
+        // Consumer
+        stockNames.put("SOKM", "Soda Sanayi ve Ticaret A.Ş.");
+        stockNames.put("POLA", "Polisan Plastik San. A.Ş.");
+        stockNames.put("DAGI", "Dağ Giyim San. Ticaret A.Ş.");
+        stockNames.put("BFREN", "Boğaziçi Freez Gıda Ürün. Tic. A.Ş.");
+        
+        // Telecommunication
+        stockNames.put("TCELL", "Turkcell İletişim Hizmetleri A.Ş.");
+        stockNames.put("TURK", "Türk Telekomunikasyon A.Ş.");
+        stockNames.put("VODAFONE", "Vodafone Telekomünikasyon A.Ş.");
+        
+        // Technology
+        stockNames.put("AFRET", "Aş Enerji Çözümleri A.Ş.");
+        
+        // Retail/Trading
+        stockNames.put("ARCLK", "Arçelik A.Ş.");
+        stockNames.put("BIMAS", "Bizim Mağazalar Ticaret A.Ş.");
+        stockNames.put("CARSI", "Çarşı Tiyatroları A.Ş.");
+        stockNames.put("PETKM", "Petkim Petrokimya Holding A.Ş.");
+        
+        // Default fallback
+        return stockNames.getOrDefault(symbol, "");
     }
 }

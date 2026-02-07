@@ -54,6 +54,8 @@ public class SignalGenerator {
      * Generate trading signals using ENHANCED multi-layer confirmation system
      * Based on: EMA trend, RSI, MACD, Bollinger, Volume, OBV, Price Action, Confluence
      * OPTIMIZED FOR INVESTMENT DECISIONS - Multiple confirmations required
+     * 
+     * Uses end-of-day (last hour of the day) data for signal generation
      */
     public static SignalResult generateSignal(String symbol, List<StockData> data,
                                              double[] sma20, double[] sma50, double[] ema12,
@@ -64,8 +66,9 @@ public class SignalGenerator {
             return new SignalResult(symbol, 0, 0, "HOLD", 0, "Yetersiz veri", 0);
         }
 
-        StockData latest = data.get(data.size() - 1);
-        int lastIdx = data.size() - 1;
+        // Use end-of-day (last hour) data for signal generation
+        int lastIdx = getEODIndex(data);
+        StockData latest = data.get(lastIdx);
         
         // Calculate additional indicators
         double[] ema20 = TechnicalIndicators.calculateEMA(data, 20);
@@ -583,6 +586,9 @@ public class SignalGenerator {
     /**
      * Find historical BUY/SELL signals using THE SAME scoring system as analyzeStock()
      * This ensures consistency between chart markers and report recommendations
+     * 
+     * IMPORTANT: Only marks signals at end-of-day (last hour of trading day)
+     * This ensures one signal per day, based on daily closing data
      */
     public static List<TradePoint> findHistoricalSignals(List<StockData> data,
                                                          double[] sma20, double[] sma50, 
@@ -601,15 +607,11 @@ public class SignalGenerator {
         TechnicalIndicators.BollingerBands bb = TechnicalIndicators.calculateBollingerBands(data, 20, 2.0);
         double[] obv = TechnicalIndicators.calculateOBV(data);
         
-        int lastSignalIndex = -10; // Track last signal to avoid too frequent signals
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        int lastSignalDay = -10; // Track last day with signal to avoid too frequent signals
         
-        // Scan each historical day (same as report would)
-        for (int i = 60; i < data.size() - 1; i++) {
-            // Skip if too close to last signal
-            if (i - lastSignalIndex < 5) {
-                continue;
-            }
-            
+        // Scan each historical data point
+        for (int i = 60; i < data.size(); i++) {
             // Skip if indicators are NaN
             if (Double.isNaN(sma20[i]) || Double.isNaN(sma50[i]) || 
                 Double.isNaN(ema12[i]) || Double.isNaN(ema200[i]) || 
@@ -763,65 +765,80 @@ public class SignalGenerator {
             boolean hasMinimumConfluence = confirmationCount >= 2;
             
             // GENERATE SIGNALS (same thresholds as report)
-            // Strong BUY: score >= 6, confluence >= 3
-            // BUY: score >= 4, confluence >= 2
-            // Strong SELL: score <= -6, confluence >= 3
-            // SELL: score <= -4, confluence >= 2
-            
             String signalType = null;
             String reason = "";
             
             if (totalScore >= 6 && hasStrongConfluence) {
-                signalType = "BUY"; // Mark as BUY (strong signals on chart)
+                signalType = "BUY";
                 reason = "Güçlü AL (Skor: " + totalScore + ", " + confirmationCount + " gösterge)";
             } else if (totalScore >= 4 && hasMinimumConfluence) {
-                signalType = "BUY"; // Mark as BUY (regular signals on chart)
+                signalType = "BUY";
                 reason = "AL (Skor: " + totalScore + ", " + confirmationCount + " gösterge)";
             } else if (totalScore <= -6 && hasStrongConfluence) {
-                signalType = "SELL"; // Mark as SELL (strong signals on chart)
+                signalType = "SELL";
                 reason = "Güçlü SAT (Skor: " + totalScore + ", " + confirmationCount + " gösterge)";
             } else if (totalScore <= -4 && hasMinimumConfluence) {
-                signalType = "SELL"; // Mark as SELL (regular signals on chart)
+                signalType = "SELL";
                 reason = "SAT (Skor: " + totalScore + ", " + confirmationCount + " gösterge)";
             }
             
+            // Only add signal if it's end-of-day (last hour of the trading day)
             if (signalType != null) {
-                signals.add(new TradePoint(i, signalType, currentPrice, reason));
-                lastSignalIndex = i;
-            }
-        }
-        
-        // Filter signals to keep only the strongest one per calendar day
-        // This prevents contradictory BUY/SELL signals on the same day
-        List<TradePoint> filteredSignals = new ArrayList<>();
-        Map<String, TradePoint> signalsByDate = new java.util.LinkedHashMap<>();
-        
-        for (TradePoint signal : signals) {
-            if (signal.index < 0 || signal.index >= data.size()) continue;
-            
-            long timestamp = data.get(signal.index).getTimestamp();
-            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd");
-            String dateKey = sdf.format(new java.util.Date(timestamp));
-            
-            if (!signalsByDate.containsKey(dateKey)) {
-                signalsByDate.put(dateKey, signal);
-            } else {
-                // Keep signal with higher absolute score
-                TradePoint existing = signalsByDate.get(dateKey);
-                int existingScore = Integer.parseInt(existing.reason.replaceAll("[^-0-9]", "").split("[,]")[0]);
-                int newScore = Integer.parseInt(signal.reason.replaceAll("[^-0-9]", "").split("[,]")[0]);
+                boolean isEOD = false;
                 
-                if (Math.abs(newScore) > Math.abs(existingScore)) {
-                    signalsByDate.put(dateKey, signal);
+                if (i == data.size() - 1) {
+                    // Last data point of entire dataset
+                    isEOD = true;
+                } else {
+                    // Check if date changes after this point
+                    String currentDate = sdf.format(new Date(current.getTimestamp()));
+                    String nextDate = sdf.format(new Date(data.get(i + 1).getTimestamp()));
+                    isEOD = !currentDate.equals(nextDate);
+                }
+                
+                // Add signal only if it's end-of-day
+                if (isEOD) {
+                    // Also check if we already have a signal for this day
+                    String signalDate = sdf.format(new Date(current.getTimestamp()));
+                    String lastSignalDayStr = String.valueOf(lastSignalDay);
+                    
+                    // Parse day number from timestamp
+                    int currentDay = Math.floorDiv((int)(current.getTimestamp() / (1000 * 60 * 60 * 24)), 1);
+                    if (currentDay - lastSignalDay >= 5) { // At least 5 days between signals
+                        signals.add(new TradePoint(i, signalType, currentPrice, reason));
+                        lastSignalDay = currentDay;
+                    }
                 }
             }
         }
         
-        // Add filtered signals back
-        for (TradePoint signal : signalsByDate.values()) {
-            filteredSignals.add(signal);
+        return signals;
+    }
+    
+    /**
+     * Get the index of the last data point of the day (end-of-day / last hour)
+     * For daily data: returns last index
+     * For hourly data: returns index of last hour of trading day
+     */
+    private static int getEODIndex(List<StockData> data) {
+        if (data.isEmpty()) return 0;
+        
+        long lastTimestamp = data.get(data.size() - 1).getTimestamp();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        String lastDate = sdf.format(new Date(lastTimestamp));
+        
+        // For daily data, just return the last index
+        // For hourly data, find the last point of the current day
+        int eodIdx = data.size() - 1;
+        for (int i = data.size() - 1; i >= 0; i--) {
+            String dateStr = sdf.format(new Date(data.get(i).getTimestamp()));
+            if (!dateStr.equals(lastDate)) {
+                // Found date change, return the first point of the last day
+                return i + 1;
+            }
         }
         
-        return filteredSignals;
+        return eodIdx;
     }
 }
+
