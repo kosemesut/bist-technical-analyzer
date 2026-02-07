@@ -95,6 +95,10 @@ public class BistAnalyzerApp {
                 System.out.println("Geri dönüş raporu kaydedildi: " + OUTPUT_DIR + "/report.html");
             }
 
+            // Upload report to FTP
+            System.out.println("\n" + repeat("═", 50));
+            uploadToFTP();
+            
             // Print signal summary
             if (!userSignals.isEmpty() || !bist100Signals.isEmpty()) {
                 System.out.println("\n" + repeat("═", 50));
@@ -308,6 +312,25 @@ public class BistAnalyzerApp {
                "  </div>" +
                "</body>" +
                "</html>";
+    }
+
+    private static void uploadToFTP() {
+        try {
+            // FTP configuration
+            String ftpHost = "ftp://eybabi.keenetic.link";
+            int ftpPort = 21;
+            String username = "admin";
+            String password = "1m2t3k4s";
+            String remotePath = "/BIST";
+            
+            System.out.println("📤 FTP'ye rapor yükleniyor...");
+            FtpReportUploader uploader = new FtpReportUploader(ftpHost, ftpPort, username, password, remotePath);
+            uploader.uploadReports(OUTPUT_DIR);
+            System.out.println("✅ FTP yükleme tamamlandı\n");
+        } catch (Exception ex) {
+            System.err.println("⚠️  FTP yükleme başarısız: " + ex.getMessage());
+            System.err.println("Local rapor yine de oluşturuldu: output/report.html\n");
+        }
     }
 
     private static String repeat(String str, int count) {
