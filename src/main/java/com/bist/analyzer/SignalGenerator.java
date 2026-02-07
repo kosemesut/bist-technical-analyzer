@@ -1,8 +1,26 @@
 package com.bist.analyzer;
 
 import java.util.List;
+import java.util.ArrayList;
 
 public class SignalGenerator {
+    
+    /**
+     * Historical trade signal point
+     */
+    public static class TradePoint {
+        public int index;           // Position in data array
+        public String type;         // "BUY" or "SELL"
+        public double price;        // Price at signal
+        public String reason;       // Why signal generated
+        
+        public TradePoint(int index, String type, double price, String reason) {
+            this.index = index;
+            this.type = type;
+            this.price = price;
+            this.reason = reason;
+        }
+    }
     
     /**
      * Signal result with score-based classification
@@ -229,5 +247,116 @@ public class SignalGenerator {
         
         return new SignalResult(symbol, latest.getTimestamp(), latest.getClose(), 
                               signal, confidence, details.toString(), totalScore);
+    }
+    
+    /**
+     * Find historical BUY/SELL signal points for chart visualization
+     * Uses simple but effective crossover strategy:
+     * - BUY: When EMA12 crosses above SMA50 + RSI support + Volume
+     * - SELL: When EMA12 crosses below SMA50 + RSI resistance + Volume
+     */
+    public static List<TradePoint> findHistoricalSignals(List<StockData> data,
+                                                         double[] sma20, double[] sma50, 
+                                                         double[] ema12, double[] rsi) {
+        List<TradePoint> signals = new ArrayList<>();
+        
+        if (data.size() < 60) {
+            return signals; // Not enough data
+        }
+        
+        // Calculate average volume for reference
+        double[] avgVolume = new double[data.size()];
+        for (int i = 20; i < data.size(); i++) {
+            double sum = 0;
+            for (int j = i - 19; j <= i; j++) {
+                sum += data.get(j).getVolume();
+            }
+            avgVolume[i] = sum / 20.0;
+        }
+        
+        // Scan for crossover signals (start from index 50 to have enough data)
+        for (int i = 51; i < data.size() - 1; i++) {
+            // Skip if any indicator is NaN
+            if (Double.isNaN(ema12[i]) || Double.isNaN(ema12[i-1]) ||
+                Double.isNaN(sma20[i]) || Double.isNaN(sma20[i-1]) ||
+                Double.isNaN(sma50[i]) || Double.isNaN(sma50[i-1]) ||
+                Double.isNaN(rsi[i])) {
+                continue;
+            }
+            
+            double currentPrice = data.get(i).getClose();
+            double currentVolume = data.get(i).getVolume();
+            double volRatio = currentVolume / avgVolume[i];
+            
+            // === BUY SIGNALS ===
+            // Signal 1: EMA12 crosses above SMA20 (Golden Cross - fast)
+            if (ema12[i-1] <= sma20[i-1] && ema12[i] > sma20[i] && 
+                rsi[i] > 30 && rsi[i] < 70 && volRatio > 1.2) {
+                signals.add(new TradePoint(i, "BUY", currentPrice, 
+                    "EMA12 x SMA20 Yukarı (RSI:" + String.format("%.0f", rsi[i]) + ")"));
+                i += 5; // Skip next 5 days to avoid duplicates
+                continue;
+            }
+            
+            // Signal 2: Price bounces from SMA50 support + RSI oversold recovery
+            if (i >= 2 && 
+                data.get(i-2).getClose() > sma50[i-2] &&
+                data.get(i-1).getClose() < sma50[i-1] &&
+                currentPrice > sma50[i] &&
+                rsi[i] > 30 && rsi[i] < 50 &&
+                rsi[i] > rsi[i-1] && // RSI recovering
+                volRatio > 1.3) {
+                signals.add(new TradePoint(i, "BUY", currentPrice,
+                    "SMA50 Destek Testi (RSI:" + String.format("%.0f", rsi[i]) + ")"));
+                i += 5;
+                continue;
+            }
+            
+            // Signal 3: RSI oversold bounce (< 30 -> > 35)
+            if (rsi[i-1] < 30 && rsi[i] > 35 && rsi[i] < 50 &&
+                currentPrice > data.get(i-1).getClose() && // Price rising
+                volRatio > 1.4) {
+                signals.add(new TradePoint(i, "BUY", currentPrice,
+                    "RSI Aşırı Satım Çıkışı (" + String.format("%.0f", rsi[i]) + ")"));
+                i += 5;
+                continue;
+            }
+            
+            // === SELL SIGNALS ===
+            // Signal 1: EMA12 crosses below SMA20 (Death Cross - fast)
+            if (ema12[i-1] >= sma20[i-1] && ema12[i] < sma20[i] &&
+                rsi[i] > 30 && rsi[i] < 70 && volRatio > 1.2) {
+                signals.add(new TradePoint(i, "SELL", currentPrice,
+                    "EMA12 x SMA20 Aşağı (RSI:" + String.format("%.0f", rsi[i]) + ")"));
+                i += 5;
+                continue;
+            }
+            
+            // Signal 2: Price rejected at SMA50 resistance
+            if (i >= 2 &&
+                data.get(i-2).getClose() < sma50[i-2] &&
+                data.get(i-1).getClose() > sma50[i-1] &&
+                currentPrice < sma50[i] &&
+                rsi[i] > 50 && rsi[i] < 70 &&
+                rsi[i] < rsi[i-1] && // RSI weakening
+                volRatio > 1.3) {
+                signals.add(new TradePoint(i, "SELL", currentPrice,
+                    "SMA50 Direnç Reddi (RSI:" + String.format("%.0f", rsi[i]) + ")"));
+                i += 5;
+                continue;
+            }
+            
+            // Signal 3: RSI overbought reversal (> 70 -> < 65)
+            if (rsi[i-1] > 70 && rsi[i] < 65 && rsi[i] > 50 &&
+                currentPrice < data.get(i-1).getClose() && // Price falling
+                volRatio > 1.4) {
+                signals.add(new TradePoint(i, "SELL", currentPrice,
+                    "RSI Aşırı Alım Dönüşü (" + String.format("%.0f", rsi[i]) + ")"));
+                i += 5;
+                continue;
+            }
+        }
+        
+        return signals;
     }
 }

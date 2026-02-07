@@ -12,8 +12,11 @@ import org.jfree.chart.renderer.xy.XYBarRenderer;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 import org.jfree.chart.ChartUtils;
+import org.jfree.chart.annotations.XYPointerAnnotation;
+import org.jfree.chart.ui.TextAnchor;
 
 import java.awt.*;
+import java.awt.geom.Ellipse2D;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
@@ -32,6 +35,8 @@ public class ChartGenerator {
     private static final Color EMA12_COLOR = new Color(52, 211, 153); // Teal/Green
     private static final Color RSI_COLOR = new Color(168, 85, 247); // Purple
     private static final Color VOLUME_COLOR = new Color(100, 150, 200, 80); // Semi-transparent blue
+    private static final Color BUY_SIGNAL_COLOR = new Color(34, 197, 94); // Green
+    private static final Color SELL_SIGNAL_COLOR = new Color(239, 68, 68); // Red
 
     /**
      * Generate professional-grade technical analysis chart with price + indicators + RSI
@@ -70,6 +75,9 @@ public class ChartGenerator {
         if (sma50[0] == 0.0) sma50 = TechnicalIndicators.calculateSMA(data, 50);
         if (ema12[0] == 0.0) ema12 = TechnicalIndicators.calculateEMA(data, 12);
         if (rsi[0] == 0.0) rsi = TechnicalIndicators.calculateRSI(data, 14);
+        
+        // Find historical BUY/SELL signals
+        List<SignalGenerator.TradePoint> tradeSignals = SignalGenerator.findHistoricalSignals(data, sma20, sma50, ema12, rsi);
 
         // ===== PANEL 1: Price Chart with Moving Averages =====
         XYSeriesCollection priceDataset = new XYSeriesCollection();
@@ -123,6 +131,10 @@ public class ChartGenerator {
         priceRenderer.setSeriesPaint(3, EMA12_COLOR);     // Teal EMA12
         
         pricePlot.setRenderer(priceRenderer);
+        
+        // Add BUY/SELL signal markers
+        addTradeSignalMarkers(pricePlot, tradeSignals, data);
+        
         pricePlot.setRangeGridlinePaint(GRID_COLOR);
         pricePlot.setRangeGridlinesVisible(true);
         pricePlot.setDomainGridlinesVisible(false);
@@ -313,5 +325,58 @@ public class ChartGenerator {
             }
         }
         return max;
+    }
+    
+    /**
+     * Add BUY/SELL signal markers to price chart
+     */
+    private static void addTradeSignalMarkers(XYPlot plot, List<SignalGenerator.TradePoint> signals, List<StockData> data) {
+        if (signals.isEmpty()) {
+            return;
+        }
+        
+        for (SignalGenerator.TradePoint signal : signals) {
+            if (signal.index >= data.size()) continue;
+            
+            double x = signal.index;
+            double y = signal.price;
+            
+            if ("BUY".equals(signal.type)) {
+                // Green upward arrow for BUY
+                XYPointerAnnotation buyAnnotation = new XYPointerAnnotation(
+                    "AL",
+                    x, y,
+                    Math.PI / 2.0  // Point upward (90 degrees)
+                );
+                buyAnnotation.setArrowLength(12);
+                buyAnnotation.setArrowWidth(8);
+                buyAnnotation.setBaseRadius(20);
+                buyAnnotation.setTipRadius(5);
+                buyAnnotation.setArrowPaint(BUY_SIGNAL_COLOR);
+                buyAnnotation.setPaint(BUY_SIGNAL_COLOR);
+                buyAnnotation.setFont(new Font("Arial", Font.BOLD, 11));
+                buyAnnotation.setTextAnchor(TextAnchor.TOP_CENTER);
+                buyAnnotation.setToolTipText(signal.reason);
+                plot.addAnnotation(buyAnnotation);
+                
+            } else if ("SELL".equals(signal.type)) {
+                // Red downward arrow for SELL
+                XYPointerAnnotation sellAnnotation = new XYPointerAnnotation(
+                    "SAT",
+                    x, y,
+                    -Math.PI / 2.0  // Point downward (-90 degrees)
+                );
+                sellAnnotation.setArrowLength(12);
+                sellAnnotation.setArrowWidth(8);
+                sellAnnotation.setBaseRadius(20);
+                sellAnnotation.setTipRadius(5);
+                sellAnnotation.setArrowPaint(SELL_SIGNAL_COLOR);
+                sellAnnotation.setPaint(SELL_SIGNAL_COLOR);
+                sellAnnotation.setFont(new Font("Arial", Font.BOLD, 11));
+                sellAnnotation.setTextAnchor(TextAnchor.BOTTOM_CENTER);
+                sellAnnotation.setToolTipText(signal.reason);
+                plot.addAnnotation(sellAnnotation);
+            }
+        }
     }
 }
