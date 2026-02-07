@@ -17,16 +17,12 @@
         <div id="chart" style="width:100%; height:800px;"></div>
     </div>
     <script>
-        // Data preparation
+        // Data preparation (daily aggregated)
         var dates = []
-
-        var priceText = []
-
-        var signalText = []
 
         var prices = [];
 
-        var dailyChanges = []
+        var dailyChanges = [];
 
         var sma20 = [];
 
@@ -36,7 +32,7 @@
 
         var rsi = [];
 
-        // BUY/SELL signals
+        // BUY/SELL signals on daily data
         var buyDates = [], buyPrices = [], buyTexts = [];
         var sellDates = [], sellPrices = [], sellTexts = [];
 
@@ -44,13 +40,12 @@
         var tracePrice = {
             x: dates,
             y: prices,
-            text: priceText,
-            customdata: dailyChanges,
+            customdata: [dailyChangeValues, closingTimes],
             type: 'scatter',
             mode: 'lines',
             name: 'Kapanış Fiyatı',
             line: { color: '#1a1a1a', width: 2 },
-            hovertemplate: '<b>%{text}</b><br>Fiyat: %{y:.2f} TL<br>Günlük Değişim: %{customdata:.2f}%<extra></extra>',
+            hovertemplate: '<b>Tarih: %{x}</b><br>Kapanış: %{y:.2f} TL<br>Günlük Değişim: %{customdata[0]:.2f}%<br>Kapanış Saati: %{customdata[1]}<extra></extra>',
             yaxis: 'y'
         };
 
@@ -98,8 +93,7 @@
         var signalLineX = signalLine.map(p => p.date);
         var signalLineY = signalLine.map(p => p.price);
         var signalLineText = signalLine.map(p => {
-            var parts = p.date.split(' ');
-            return '<b>' + parts[0] + '</b>' + '\nSinyal Saati: ' + parts[1];
+            return '<b>' + p.date + '</b>';
         });
 
         var traceSignalLine = {
