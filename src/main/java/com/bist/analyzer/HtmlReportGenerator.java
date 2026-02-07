@@ -126,69 +126,74 @@ public class HtmlReportGenerator {
         html.append("            </thead>\n");
         html.append("            <tbody id=\"signalsTableBody\">\n");
         
-        // Read priority stocks from stock_list.txt
-        List<String> priorityStocks = readPriorityStocks();
+        // Read stock list groups from stock_list.txt (before and after --- separator)
+        Map<String, Set<String>> stockGroups = readStockListGroups();
+        Set<String> beforeSeparator = stockGroups.getOrDefault("before", new HashSet<>());
+        Set<String> afterSeparator = stockGroups.getOrDefault("after", new HashSet<>());
         
-        // Custom sorting
-        List<SignalGenerator.SignalResult> sortedSignals = new ArrayList<>(signals);
-        sortedSignals.sort((a, b) -> {
-            // 0. Priority stocks always first (in order they appear in stock_list.txt)
-            boolean aPriority = priorityStocks.contains(a.symbol);
-            boolean bPriority = priorityStocks.contains(b.symbol);
-            if (aPriority && !bPriority) return -1;
-            if (!aPriority && bPriority) return 1;
-            if (aPriority && bPriority) {
-                return Integer.compare(priorityStocks.indexOf(a.symbol), priorityStocks.indexOf(b.symbol));
+        // Organize signals into groups: XU100, priority stocks (before ---), BIST100 stocks (after ---)
+        SignalGenerator.SignalResult xu100Signal = null;
+        List<SignalGenerator.SignalResult> prioritySignals = new ArrayList<>();
+        List<SignalGenerator.SignalResult> bist100OnlySignals = new ArrayList<>();
+        
+        for (SignalGenerator.SignalResult signal : signals) {
+            if (signal.symbol.equals("XU100")) {
+                xu100Signal = signal;
+            } else if (beforeSeparator.contains(signal.symbol)) {
+                prioritySignals.add(signal);
+            } else {
+                bist100OnlySignals.add(signal);
             }
-            
-            // 1. Signal priority (STRONG_BUY first)
+        }
+        
+        // Sort priority signals and BIST100 signals by signal value, then confidence
+        Comparator<SignalGenerator.SignalResult> signalComparator = (a, b) -> {
             int aValue = getSignalValue(a.signal);
             int bValue = getSignalValue(b.signal);
             if (aValue != bValue) {
-                return Integer.compare(bValue, aValue);
+                return Integer.compare(bValue, aValue);  // Higher signal value first
             }
-            
-            // 2. For STRONG_BUY with confidence > 75%, sort by 1-month change (lowest first)
-            if (a.signal.equals("STRONG_BUY") && a.confidence > 75 && b.signal.equals("STRONG_BUY") && b.confidence > 75) {
-                double aChange = get1MonthChange(a.symbol, a.price, allData);
-                double bChange = get1MonthChange(b.symbol, b.price, allData);
-                return Double.compare(aChange, bChange); // Ascending (lowest gain first)
-            }
-            
-            // 3. Within same signal, sort by confidence (highest first)
-            if (Math.abs(a.confidence - b.confidence) > 0.1) {
-                return Double.compare(b.confidence, a.confidence);
-            }
-            
-            return 0;
-        });
+            return Double.compare(b.confidence, a.confidence); // Same signal, higher confidence first
+        };
         
-        for (SignalGenerator.SignalResult signal : sortedSignals) {
-            String signalClass = signal.signal.toLowerCase().replace("_", "-");
-            String signalText = getSignalTextTR(signal.signal);
-            String stockName = getStockName(signal.symbol);
-            
-            html.append("                <tr class=\"signal-").append(signalClass).append("\" data-symbol=\"")
-                .append(signal.symbol).append("\" data-name=\"").append(stockName).append("\">\n");
-            html.append("                    <td><strong><a href=\"#\" onclick=\"loadChart('").append(signal.symbol)
-                .append("'); return false;\" class=\"stock-link\" style=\"cursor: pointer;\">")
-                .append(signal.symbol).append("</a></strong></td>\n");
-            html.append("                    <td>").append(stockName).append("</td>\n");
-            html.append("                    <td>").append(String.format("%.2f TL", signal.price)).append("</td>\n");
-            html.append("                    <td><span class=\"signal-badge signal-").append(signalClass).append("\">")
-                .append(signalText).append("</span></td>\n");
-            html.append("                    <td>").append(String.format("%.0f%%", signal.confidence)).append("</td>\n");
-            
-            // Price changes column
-            html.append("                    <td><div class=\"price-changes\">\n");
-            appendCompactPriceChanges(html, signal.symbol, signal.price, allData);
-            html.append("                    </div></td>\n");
-            
-            html.append("                </tr>\n");
+        prioritySignals.sort(signalComparator);
+        bist100OnlySignals.sort(signalComparator);
+        
+        // Add XU100 first if exists
+        if (xu100Signal != null) {
+            addSignalRow(html, xu100Signal);
+        }
+        
+        // Add priority signals (--- öncesi)
+        for (SignalGenerator.SignalResult signal : prioritySignals) {
+            addSignalRow(html, signal);
+        }
+        
+        // Add BIST100 signals (--- sonrası)
+        for (SignalGenerator.SignalResult signal : bist100OnlySignals) {
+            addSignalRow(html, signal);
         }
         
         html.append("            </tbody>\n");
         html.append("        </table>\n");
+    }
+    
+    private static void addSignalRow(StringBuilder html, SignalGenerator.SignalResult signal) {
+        String signalClass = signal.signal.toLowerCase().replace("_", "-");
+        String signalText = getSignalTextTR(signal.signal);
+        String stockName = getStockName(signal.symbol);
+        
+        html.append("                <tr class=\"signal-").append(signalClass).append("\" data-symbol=\"")
+            .append(signal.symbol).append("\" data-name=\"").append(stockName).append("\">\n");
+        html.append("                    <td><strong><a href=\"#\" onclick=\"loadChart('").append(signal.symbol)
+            .append("'); return false;\" class=\"stock-link\" style=\"cursor: pointer;\">")
+            .append(signal.symbol).append("</a></strong></td>\n");
+        html.append("                    <td>").append(stockName).append("</td>\n");
+        html.append("                    <td>").append(String.format("%.2f TL", signal.price)).append("</td>\n");
+        html.append("                    <td><span class=\"signal-badge signal-").append(signalClass).append("\">")
+            .append(signalText).append("</span></td>\n");
+        html.append("                    <td>").append(String.format("%.0f%%", signal.confidence)).append("</td>\n");
+        html.append("                </tr>\n");
     }
 
     private static void generateStockDetail(StringBuilder html, SignalGenerator.SignalResult signal,
@@ -567,6 +572,60 @@ public class HtmlReportGenerator {
         return priorityStocks;
     }
     
+    /**
+     * Read stock list groups from stock_list.txt
+     * Returns a Map with "before" and "after" keys containing symbols before and after "---" separator
+     */
+    private static Map<String, Set<String>> readStockListGroups() {
+        Map<String, Set<String>> groups = new HashMap<>();
+        groups.put("before", new HashSet<>());
+        groups.put("after", new HashSet<>());
+        
+        try {
+            Path path = Paths.get("stock_list.txt");
+            List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
+            
+            boolean foundSeparator = false;
+            
+            for (String line : lines) {
+                line = line.trim();
+                
+                // Skip empty lines and comments
+                if (line.isEmpty() || line.startsWith("#")) {
+                    continue;
+                }
+                
+                // Check for separator
+                if (line.startsWith("---") || line.startsWith("--")) {
+                    foundSeparator = true;
+                    continue;
+                }
+                
+                // Extract symbol from "SYMBOL - Name" or just "SYMBOL"
+                String symbol = line;
+                if (line.contains(" - ")) {
+                    symbol = line.split(" - ")[0].trim();
+                }
+                
+                // Skip XU100 (handled separately in sorting)
+                if (symbol.equalsIgnoreCase("XU100")) {
+                    continue;
+                }
+                
+                // Add to appropriate group
+                if (!foundSeparator) {
+                    groups.get("before").add(symbol.toUpperCase());
+                } else {
+                    groups.get("after").add(symbol.toUpperCase());
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("Warning: Could not read stock list groups: " + e.getMessage());
+        }
+        
+        return groups;
+    }
+
     private static String getStockName(String symbol) {
         // Read stock names from stock_list.txt file
         // Format: SYMBOL - Full Company Name
