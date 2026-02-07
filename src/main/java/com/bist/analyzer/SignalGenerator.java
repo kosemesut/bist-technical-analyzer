@@ -466,11 +466,37 @@ public class SignalGenerator {
             }
         }
         
-        // 11. CONFLUENCE CHECK (CRITICAL - Multiple confirmations required)
+        // ============================================
+        // 11. NEW: FALSE SIGNAL VALIDATION LAYER
+        // ============================================
+        // Determine preliminary signal direction for validator
+        String preliminarySignal = (totalScore > 0) ? "BUY" : ((totalScore < 0) ? "SELL" : "HOLD");
+        
+        SignalValidator.SignalQuality signalQuality = SignalValidator.validateSignalQuality(
+            preliminarySignal, data, adxValue, latest.getClose(),
+            sma20[lastIdx], sma50[lastIdx], ema200[lastIdx], srLevels, adx
+        );
+        
+        // Apply false signal penalty
+        totalScore = (int)(totalScore * signalQuality.confidenceMultiplier);
+        
+        // Add red flags to details
+        if (!signalQuality.redFlags.isEmpty()) {
+            details.append("<br><strong>🚨 UYARI FLAGLARı:</strong><br>");
+            for (String flag : signalQuality.redFlags) {
+                details.append("  • ").append(flag).append("<br>");
+            }
+        }
+        
+        if (!signalQuality.reason.isEmpty()) {
+            details.append("<strong>Validator Karar:</strong> ").append(signalQuality.reason).append("<br>");
+        }
+        
+        // 12. CONFLUENCE CHECK (CRITICAL - Multiple confirmations required)
         boolean hasStrongConfluence = confirmationCount >= 5; // INCREASED from 4 to 5
         boolean hasMinimumConfluence = confirmationCount >= 3; // INCREASED from 2 to 3
         
-        // 12. CLASSIFICATION (Enhanced with confluence and ADX requirement)
+        // 13. CLASSIFICATION (Enhanced with confluence and ADX requirement)
         String signal;
         double confidence;
         
