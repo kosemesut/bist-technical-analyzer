@@ -255,11 +255,11 @@ public class BistAnalyzerApp {
             }
         }
 
-        System.out.println("  🟢 GÜÇLÜ AL:    " + strongBuy);
-        System.out.println("  🟢 AL:          " + buy);
-        System.out.println("  🟡 TUTUTTUR:    " + hold);
-        System.out.println("  🔴 SAT:         " + sell);
-        System.out.println("  🔴 GÜÇLÜ SAT:   " + strongSell);
+        System.out.println("  ✅ GÜÇLÜ AL:    " + strongBuy);
+        System.out.println("  ✅ AL:          " + buy);
+        System.out.println("  ⏸️  TUT:         " + hold);
+        System.out.println("  ⬇️  SAT:         " + sell);
+        System.out.println("  ⬇️  GÜÇLÜ SAT:   " + strongSell);
     }
 
     private static List<String> readStockList() throws IOException {
