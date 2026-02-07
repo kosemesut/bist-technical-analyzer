@@ -253,7 +253,14 @@ public class BistAnalyzerApp {
                 line = line.trim();
                 // Skip empty lines, comments, and the --- separator
                 if (!line.isEmpty() && !line.startsWith("#") && !line.equals("---") && !line.equals("--")) {
-                    stocks.add(line.toUpperCase());
+                    // Extract symbol from format: "SYMBOL - Full Name" or just "SYMBOL"
+                    String symbol = line;
+                    if (line.contains(" - ")) {
+                        symbol = line.split(" - ")[0].trim();
+                    }
+                    if (!symbol.isEmpty()) {
+                        stocks.add(symbol.toUpperCase());
+                    }
                 }
             }
         } else {

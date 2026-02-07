@@ -2,6 +2,10 @@ package com.bist.analyzer;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -65,24 +69,7 @@ public class HtmlReportGenerator {
             }
         }
         
-        // Detailed analysis for user stocks
-        if (!userSignals.isEmpty()) {
-            html.append("    <section class=\"detailed\">\n");
-            html.append("        <h2>📊 Detaylı Analiz</h2>\n");
-            
-            List<SignalGenerator.SignalResult> sortedSignals = new ArrayList<>(userSignals);
-            sortedSignals.sort((a, b) -> {
-                int aValue = getSignalValue(a.signal);
-                int bValue = getSignalValue(b.signal);
-                return Integer.compare(bValue, aValue);
-            });
-            
-            for (SignalGenerator.SignalResult signal : sortedSignals) {
-                generateStockDetail(html, signal, allData);
-            }
-            
-            html.append("    </section>\n");
-        }
+        // Detailed analysis sections removed - using only dynamic chart viewer instead
         
         // Legend
         html.append("    <section class=\"legend\">\n");
@@ -581,58 +568,36 @@ public class HtmlReportGenerator {
     }
     
     private static String getStockName(String symbol) {
-        // Map of BIST stocks to their company names
-        // Add more as needed
-        Map<String, String> stockNames = new HashMap<>();
+        // Read stock names from stock_list.txt file
+        // Format: SYMBOL - Full Company Name
+        try {
+            Path path = Paths.get("stock_list.txt");
+            List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
+            
+            for (String line : lines) {
+                line = line.trim();
+                if (line.isEmpty() || line.startsWith("---") || line.startsWith("#")) {
+                    continue;
+                }
+                
+                // Parse format: SYMBOL - Full Name
+                if (line.contains(" - ")) {
+                    String[] parts = line.split(" - ", 2);
+                    if (parts.length == 2) {
+                        String lineSymbol = parts[0].trim();
+                        String lineName = parts[1].trim();
+                        
+                        if (lineSymbol.equalsIgnoreCase(symbol)) {
+                            return lineName;
+                        }
+                    }
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("Warning: Could not read stock names from stock_list.txt: " + e.getMessage());
+        }
         
-        // Bank stocks
-        stockNames.put("AKBNK", "Akbank T.A.Ş.");
-        stockNames.put("ALBRK", "Albaraka Türk Katılım Bankası A.Ş.");
-        stockNames.put("DENIZ", "Denizbank A.Ş.");
-        stockNames.put("GARAN", "Garanti BBVA Bankası A.Ş.");
-        stockNames.put("HALKB", "Türkiye Halk Bankası A.Ş.");
-        stockNames.put("ICBCT", "İçbank Türk A.Ş.");
-        stockNames.put("ISBAK", "İş Bankası A.Ş.");
-        stockNames.put("QNBFB", "QNB Finansbank A.Ş.");
-        stockNames.put("SBANK", "Sberbank Türk A.Ş.");
-        stockNames.put("TBNK", "Türkiye Bankası A.Ş.");
-        stockNames.put("VAKBN", "Vakıfbank Türk A.Ş.");
-        
-        // Insurance
-        stockNames.put("AKGRT", "Ak Grt. Türkiye Sigorta A.Ş.");
-        stockNames.put("ANSGRT", "Anadolu Sigorta A.Ş.");
-        
-        // Energy
-        stockNames.put("AENERJI", "Aksa Elektrik Üretim A.Ş.");
-        stockNames.put("CESEN", "Çeşme Elektrik San. A.Ş.");
-        stockNames.put("DOAS", "Doğuş Oto Pazarlama A.Ş.");
-        stockNames.put("ENEOS", "Eneos Enerji A.Ş.");
-        
-        // Industry
-        stockNames.put("IEMAS", "İntek Elektrik Mak. Esas San. A.Ş.");
-        stockNames.put("IZMIT", "İzmitçimento San. Ticaret A.Ş.");
-        
-        // Consumer
-        stockNames.put("SOKM", "Soda Sanayi ve Ticaret A.Ş.");
-        stockNames.put("POLA", "Polisan Plastik San. A.Ş.");
-        stockNames.put("DAGI", "Dağ Giyim San. Ticaret A.Ş.");
-        stockNames.put("BFREN", "Boğaziçi Freez Gıda Ürün. Tic. A.Ş.");
-        
-        // Telecommunication
-        stockNames.put("TCELL", "Turkcell İletişim Hizmetleri A.Ş.");
-        stockNames.put("TURK", "Türk Telekomunikasyon A.Ş.");
-        stockNames.put("VODAFONE", "Vodafone Telekomünikasyon A.Ş.");
-        
-        // Technology
-        stockNames.put("AFRET", "Aş Enerji Çözümleri A.Ş.");
-        
-        // Retail/Trading
-        stockNames.put("ARCLK", "Arçelik A.Ş.");
-        stockNames.put("BIMAS", "Bizim Mağazalar Ticaret A.Ş.");
-        stockNames.put("CARSI", "Çarşı Tiyatroları A.Ş.");
-        stockNames.put("PETKM", "Petkim Petrokimya Holding A.Ş.");
-        
-        // Default fallback
-        return stockNames.getOrDefault(symbol, "");
+        // Return empty string if not found (instead of throwing exception)
+        return "";
     }
 }
