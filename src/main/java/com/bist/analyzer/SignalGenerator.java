@@ -17,12 +17,23 @@ public class SignalGenerator {
         public String type;         // "BUY" or "SELL"
         public double price;        // Price at signal
         public String reason;       // Why signal generated
+        public String signal;       // Signal quality: "STRONG_BUY", "BUY", "STRONG_SELL", "SELL"
+        public double confidence;   // Confidence 0-100
         
-        public TradePoint(int index, String type, double price, String reason) {
+        // New constructor with confidence
+        public TradePoint(int index, String type, double price, String reason, 
+                         String signal, double confidence) {
             this.index = index;
             this.type = type;
             this.price = price;
             this.reason = reason;
+            this.signal = signal;
+            this.confidence = confidence;
+        }
+        
+        // Legacy constructor for backward compatibility
+        public TradePoint(int index, String type, double price, String reason) {
+            this(index, type, price, reason, type.equals("BUY") ? "BUY" : "SELL", 50.0);
         }
     }
     
@@ -766,20 +777,30 @@ public class SignalGenerator {
             
             // GENERATE SIGNALS (same thresholds as report)
             String signalType = null;
+            String signal = null;
             String reason = "";
+            double confidence = 50.0;
             
             if (totalScore >= 6 && hasStrongConfluence) {
                 signalType = "BUY";
+                signal = "STRONG_BUY";
                 reason = "Güçlü AL (Skor: " + totalScore + ", " + confirmationCount + " gösterge)";
+                confidence = Math.min(95, 70 + confirmationCount * 4);
             } else if (totalScore >= 4 && hasMinimumConfluence) {
                 signalType = "BUY";
+                signal = "BUY";
                 reason = "AL (Skor: " + totalScore + ", " + confirmationCount + " gösterge)";
+                confidence = 55 + confirmationCount * 6;
             } else if (totalScore <= -6 && hasStrongConfluence) {
                 signalType = "SELL";
+                signal = "STRONG_SELL";
                 reason = "Güçlü SAT (Skor: " + totalScore + ", " + confirmationCount + " gösterge)";
+                confidence = Math.min(95, 70 + confirmationCount * 4);
             } else if (totalScore <= -4 && hasMinimumConfluence) {
                 signalType = "SELL";
+                signal = "SELL";
                 reason = "SAT (Skor: " + totalScore + ", " + confirmationCount + " gösterge)";
+                confidence = 55 + confirmationCount * 6;
             }
             
             // Only add signal if it's end-of-day (last hour of the trading day)
@@ -804,7 +825,7 @@ public class SignalGenerator {
                     // Only add if it's a different day than the last signal
                     // This prevents multiple signals on the same day (keeps only the last one)
                     if (!signalDate.equals(lastSignalDate)) {
-                        signals.add(new TradePoint(i, signalType, currentPrice, reason));
+                        signals.add(new TradePoint(i, signalType, currentPrice, reason, signal, confidence));
                         lastSignalDate = signalDate;
                     }
                 }
