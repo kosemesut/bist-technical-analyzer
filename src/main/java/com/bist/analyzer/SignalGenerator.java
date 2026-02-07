@@ -608,7 +608,7 @@ public class SignalGenerator {
         double[] obv = TechnicalIndicators.calculateOBV(data);
         
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-        int lastSignalDay = -10; // Track last day with signal to avoid too frequent signals
+        String lastSignalDate = ""; // Track last day with signal to avoid same-day duplicates
         
         // Scan each historical data point
         for (int i = 60; i < data.size(); i++) {
@@ -798,15 +798,14 @@ public class SignalGenerator {
                 
                 // Add signal only if it's end-of-day
                 if (isEOD) {
-                    // Also check if we already have a signal for this day
+                    // Check if we already have a signal for this day
                     String signalDate = sdf.format(new Date(current.getTimestamp()));
-                    String lastSignalDayStr = String.valueOf(lastSignalDay);
                     
-                    // Parse day number from timestamp
-                    int currentDay = Math.floorDiv((int)(current.getTimestamp() / (1000 * 60 * 60 * 24)), 1);
-                    if (currentDay - lastSignalDay >= 5) { // At least 5 days between signals
+                    // Only add if it's a different day than the last signal
+                    // This prevents multiple signals on the same day (keeps only the last one)
+                    if (!signalDate.equals(lastSignalDate)) {
                         signals.add(new TradePoint(i, signalType, currentPrice, reason));
-                        lastSignalDay = currentDay;
+                        lastSignalDate = signalDate;
                     }
                 }
             }
