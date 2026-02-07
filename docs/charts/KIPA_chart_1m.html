@@ -28,6 +28,8 @@
 
         var lows = [];
 
+        var volumes = [];
+
         var dailyChanges = [];
 
         var closingTimes = [];
@@ -53,7 +55,7 @@
         // Build custom data for hover template
         var customdata = [];
         for (let i = 0; i < dates.length; i++) {
-            customdata.push([opens[i], dailyChanges[i], closingTimes[i], signalTypes[i], dayNames[i]]);
+            customdata.push([opens[i], dailyChanges[i], closingTimes[i], signalTypes[i], dayNames[i], volumes[i]]);
         }
 
         // Price chart traces
@@ -65,7 +67,7 @@
             mode: 'lines',
             name: 'Kapanış Fiyatı',
             line: { color: '#1a1a1a', width: 2 },
-            hovertemplate: '<b>Tarih: %{x} (%{customdata[4]})</b><br>Açılış: %{customdata[0]:.2f} TL<br>Kapanış: %{y:.2f} TL<br>Günlük Değişim: %{customdata[1]:.2f}%<br>Kapanış Saati: %{customdata[2]}<br>Sinyal: %{customdata[3]}<extra></extra>',
+            hovertemplate: '<b>Tarih: %{x} (%{customdata[4]})</b><br>Açılış: %{customdata[0]:.2f} TL<br>Kapanış: %{y:.2f} TL<br>Günlük Değişim: %{customdata[1]:.2f}%<br>Kapanış Saati: %{customdata[2]}<br>Günlük Hacim: %{customdata[5]:,.0f}<br>Sinyal: %{customdata[3]}<extra></extra>',
             yaxis: 'y'
         };
 
@@ -153,7 +155,7 @@
             yaxis: 'y'
         };
 
-        // RSI chart trace
+        // RSI chart trace (hidden)
         var traceRSI = {
             x: dates,
             y: rsi,
@@ -162,6 +164,20 @@
             name: 'RSI(14)',
             line: { color: '#A855F7', width: 2 },
             hovertemplate: '<b>%{x}</b><br>RSI: %{y:.1f}<extra></extra>',
+            visible: false,
+            showlegend: false,
+            yaxis: 'y2',
+            xaxis: 'x'
+        };
+
+        var traceVolume = {
+            x: dates,
+            y: volumes,
+            type: 'bar',
+            mode: 'markers',
+            name: 'Hacim',
+            marker: { color: 'rgba(68, 85, 102, 0.5)' },
+            hovertemplate: '<b>Tarih: %{x|%Y-%m-%d}</b><br>Hacim: %{y:,.0f}<extra></extra>',
             visible: true,
             yaxis: 'y2',
             xaxis: 'x'
@@ -216,9 +232,8 @@
                 gridcolor: '#e5e5e5'
             },
             yaxis2: {
-                title: 'RSI',
+                title: 'Hacim',
                 domain: [0, 0.25],
-                range: [0, 100],
                 showgrid: true,
                 gridcolor: '#e5e5e5'
             },
@@ -246,7 +261,7 @@
         };
 
         // Render chart
-        var data = [tracePrice, traceSMA20, traceSMA50, traceEMA12, traceAlSignals, traceStrongAlSignals, traceSatSignals, traceStrongSatSignals, traceRSI, traceRSI70, traceRSI30];
+        var data = [tracePrice, traceSMA20, traceSMA50, traceEMA12, traceAlSignals, traceStrongAlSignals, traceSatSignals, traceStrongSatSignals, traceVolume, traceRSI, traceRSI70, traceRSI30];
         Plotly.newPlot('chart', data, layout, config);
     </script>
 </body>
