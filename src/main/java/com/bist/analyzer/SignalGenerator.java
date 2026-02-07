@@ -70,6 +70,12 @@ public class SignalGenerator {
         double[] atr = TechnicalIndicators.calculateATR(data, 14);
         double[] obv = TechnicalIndicators.calculateOBV(data);
         
+        // NEW: Advanced indicators for false signal prevention
+        TechnicalIndicators.ADXResult adx = TechnicalIndicators.calculateADX(data, 14);
+        double[] volumePressure = TechnicalIndicators.calculateVolumePressure(data);
+        TechnicalIndicators.CandlePattern candlePattern = TechnicalIndicators.analyzeCandlePattern(data, lastIdx);
+        List<TechnicalIndicators.SupportResistanceLevel> srLevels = TechnicalIndicators.findSupportResistance(data, 100);
+        
         // 1. PRE-FILTERS (Data Quality)
         double avgMoneyVolume = 0;
         for (int i = Math.max(0, lastIdx - 19); i <= lastIdx; i++) {
@@ -86,6 +92,40 @@ public class SignalGenerator {
         // Volatility penalty
         double volatilityRatio = Double.isNaN(atr[lastIdx]) ? 0 : atr[lastIdx] / latest.getClose();
         boolean highVolatility = volatilityRatio > 0.08;
+        
+        // NEW: ADX Trend Strength Filter (Prevent signals in weak/ranging markets)
+        double adxValue = !Double.isNaN(adx.adx[lastIdx]) ? adx.adx[lastIdx] : 0;
+        boolean weakTrend = adxValue < 20;  // ADX < 20 means weak trend or ranging
+        boolean strongTrend = adxValue > 25; // ADX > 25 means strong trend
+        
+        if (weakTrend) {
+            return new SignalResult(symbol, latest.getTimestamp(), latest.getClose(),
+                "HOLD", 25, "<strong>⚠️ Zayıf Trend (ADX: " + String.format("%.1f", adxValue) + 
+                "):</strong> Yatay piyasa, sinyal güvenilirliği düşük<br>", 0);
+        }
+        
+        // NEW: Check proximity to support/resistance levels
+        boolean nearSupportResistance = false;
+        String srDetails = "";
+        for (TechnicalIndicators.SupportResistanceLevel level : srLevels) {
+            double distancePercent = Math.abs(latest.getClose() - level.level) / latest.getClose();
+            if (distancePercent <0.03 && level.strength > 0.6) { // Within 3% and strong level
+                nearSupportResistance = true;
+                srDetails = String.format("Yakında %s seviye: %.2f ₺ (%.1f%% uzaklık)<br>",
+                    level.isSupport ? "destek" : "direnç", level.level, distancePercent * 100);
+                break;
+            }
+        }
+        
+        // NEW: Volume Pressure Analysis (Buying vs Selling)
+        double avgPressure = 0;
+        for (int i = Math.max(0, lastIdx - 4); i <= lastIdx; i++) {
+            avgPressure += volumePressure[i];
+        }
+        avgPressure /= Math.min(5, lastIdx + 1);
+        boolean buyingPressure = avgPressure > 0;
+        boolean sellingPressure = avgPressure < 0;
+        double pressureStrength = Math.abs(avgPressure) / latest.getVolume();
         
         // 2. TREND DETECTION (Enhanced with multiple timeframes)
         int trendScore = 0;
@@ -321,7 +361,40 @@ public class SignalGenerator {
             }
         }
         
-        // 6. PRICE ACTION PATTERNS (NEW - CRITICAL)
+        // 6. CANDLE PATTERN ANALYSIS (NEW - REVERSAL PATTERNS)
+        int candleScore = 0;
+        if (candlePattern.isBullishEngulfing) {
+            candleScore += 4;
+            confirmationCount++;
+            details.append("<strong>✓ BULLISH ENGULFING:</strong> Güçlü Yükseliş Dönüş Pattern'i<br>");
+        } else if (candlePattern.isHammer && rsi[lastIdx] < 50) {
+            candleScore += 3;
+            confirmationCount++;
+            details.append("<strong>✓ HAMMER:</strong> Destek Bulma + Alıcı Baskısı<br>");
+        } else if (candlePattern.isBullishHarami) {
+            candleScore += 2;
+            details.append("<strong>Bullish Harami:</strong> Olası Yükseliş Dönüşü<br>");
+        }
+        
+        if (candlePattern.isBearishEngulfing) {
+            candleScore -= 4;
+            confirmationCount++;
+            details.append("<strong>✓ BEARISH ENGULFING:</strong> Güçlü Düşüş Dönüş Pattern'i<br>");
+        } else if (candlePattern.isShootingStar && rsi[lastIdx] > 50) {
+            candleScore -= 3;
+            confirmationCount++;
+            details.append("<strong>✓ SHOOTING STAR:</strong> Direnç Görme + Satıcı Baskısı<br>");
+        } else if (candlePattern.isBearishHarami) {
+            candleScore -= 2;
+            details.append("<strong>Bearish Harami:</strong> Olası Düşüş Dönüşü<br>");
+        }
+        
+        // Doji at support/resistance is indecision
+        if (candlePattern.isDoji && nearSupportResistance) {
+            details.append("<strong>⚠️ DOJI @ S/R Seviye:</strong> Belirsizlik - Dikkatli Ol<br>");
+        }
+        
+        // 7. PRICE ACTION PATTERNS (NEW - CRITICAL)
         int priceActionScore = 0;
         if (lastIdx >= 20) {
             // Higher Highs and Higher Lows (uptrend)
@@ -349,40 +422,74 @@ public class SignalGenerator {
             }
         }
         
-        // 7. TOTAL SCORE WITH BOLLINGER AND PRICE ACTION
-        int totalScore = trendScore + momentumScore + bollingerScore + volumeScore + priceActionScore;
+        // 8. VOLUME PRESSURE CONFIRMATION (NEW)
+        int pressureScore = 0;
+        if (strongTrend) { // Only trust pressure in trending markets
+            if (buyingPressure && pressureStrength > 0.3) {
+                pressureScore += 2;
+                confirmationCount++;
+                details.append("<strong>✓ ALIM BASKISI:</strong> Güçlü alıcı aktivitesi tespit edildi<br>");
+            } else if (sellingPressure && pressureStrength > 0.3) {
+                pressureScore -= 2;
+                confirmationCount++;
+                details.append("<strong>✓ SATIM BASKISI:</strong> Güçlü satıcı aktivitesi tespit edildi<br>");
+            }
+        }
+        
+        // 9. TOTAL SCORE WITH ALL NEW INDICATORS
+        int totalScore = trendScore + momentumScore + bollingerScore + volumeScore + priceActionScore + candleScore + pressureScore;
         
         // Apply volatility penalty
         if (highVolatility && totalScore > 0) {
             totalScore = (int)(totalScore * 0.8);
             details.append("<strong>⚠️ Yüksek Volatilite:</strong> Skor düşürüldü (ATR/Fiyat: ")
                   .append(String.format("%.2f%%", volatilityRatio * 100)).append(")<br>");
+        }        
+        // NEW: ADX bonus for strong trends
+        if (strongTrend) {
+            int adxBonus = totalScore > 0 ? 2 : (totalScore < 0 ? -2 : 0);
+            totalScore += adxBonus;
+            details.append("<strong>✓ GÜÇLÜ TREND (ADX: " + String.format("%.1f", adxValue) + 
+                          "):</strong> Trend gücü sinyali destekliyor<br>");
+        }        
+        // 10. FALSE BREAKOUT WARNING (NEW - CRITICAL)
+        if (nearSupportResistance && !srDetails.isEmpty()) {
+            details.append("<strong>⚠️ DESTEK/DİRENÇ YAKINI:</strong> " + srDetails);
+            
+            // Reduce confidence if near resistance on BUY signal or near support on SELL signal
+            if (totalScore > 0 && srDetails.contains("direnç")) {
+                totalScore = (int)(totalScore * 0.7); // 30% penalty
+                details.append("<strong>⚠️ DİKKAT:</strong> Direnç yakınında AL sinyali - Skor düşürüldü<br>");
+            } else if (totalScore < 0 && srDetails.contains("destek")) {
+                totalScore = (int)(totalScore * 0.7); // 30% penalty
+                details.append("<strong>⚠️ DİKKAT:</strong> Destek yakınında SAT sinyali - Skor düşürüldü<br>");
+            }
         }
         
-        // 8. CONFLUENCE CHECK (CRITICAL - Multiple confirmations required)
-        boolean hasStrongConfluence = confirmationCount >= 4; // At least 4 indicators agree
-        boolean hasMinimumConfluence = confirmationCount >= 2; // At least 2 indicators agree
+        // 11. CONFLUENCE CHECK (CRITICAL - Multiple confirmations required)
+        boolean hasStrongConfluence = confirmationCount >= 5; // INCREASED from 4 to 5
+        boolean hasMinimumConfluence = confirmationCount >= 3; // INCREASED from 2 to 3
         
-        // 9. CLASSIFICATION (Enhanced with confluence requirement)
+        // 12. CLASSIFICATION (Enhanced with confluence and ADX requirement)
         String signal;
         double confidence;
         
-        if (totalScore >= 10 && hasStrongConfluence) {
+        if (totalScore >= 12 && hasStrongConfluence && strongTrend && !candlePattern.isDoji) { // STRICTER: 12+ score, 5+ confirmations, strong trend, not doji
             signal = "STRONG_BUY";
             confidence = Math.min(95, 75 + confirmationCount * 3);
             details.append("<br><strong>🎯 CONFLUENCE:</strong> ").append(confirmationCount)
                   .append(" gösterge aynı yönde - GÜÇLÜ SİNYAL<br>");
-        } else if (totalScore >= 6 && hasMinimumConfluence) {
+        } else if (totalScore >= 7 && hasMinimumConfluence && !candlePattern.isDoji) { // STRICTER: 7+ score, 3+ confirmations
             signal = "BUY";
             confidence = 60 + confirmationCount * 5;
             details.append("<br><strong>✓ CONFLUENCE:</strong> ").append(confirmationCount)
                   .append(" gösterge aynı yönde<br>");
-        } else if (totalScore <= -10 && hasStrongConfluence) {
+        } else if (totalScore <= -12 && hasStrongConfluence && strongTrend && !candlePattern.isDoji) { // STRICTER: -12 score, 5+ confirmations, strong trend
             signal = "STRONG_SELL";
             confidence = Math.min(95, 75 + confirmationCount * 3);
             details.append("<br><strong>🎯 CONFLUENCE:</strong> ").append(confirmationCount)
                   .append(" gösterge aynı yönde - GÜÇLÜ SİNYAL<br>");
-        } else if (totalScore <= -6 && hasMinimumConfluence) {
+        } else if (totalScore <= -7 && hasMinimumConfluence && !candlePattern.isDoji) { // STRICTER: -7 score, 3+ confirmations
             signal = "SELL";
             confidence = 60 + confirmationCount * 5;
             details.append("<br><strong>✓ CONFLUENCE:</strong> ").append(confirmationCount)
@@ -401,7 +508,12 @@ public class SignalGenerator {
               .append(", Momentum: ").append(momentumScore)
               .append(", Bollinger: ").append(bollingerScore)
               .append(", Hacim: ").append(volumeScore)
-              .append(", Price Action: ").append(priceActionScore).append(")");
+              .append(", Price Action: ").append(priceActionScore)
+              .append(", Candle: ").append(candleScore)
+              .append(", Pressure: ").append(pressureScore)
+              .append(")")
+              .append("<br><strong>🔍 ADX (Trend Gücü):</strong> ").append(String.format("%.1f", adxValue))
+              .append(strongTrend ? " - Güçlü" : (weakTrend ? " - Zayıf" : " - Orta"));
         
         return new SignalResult(symbol, latest.getTimestamp(), latest.getClose(), 
                               signal, confidence, details.toString(), totalScore);
