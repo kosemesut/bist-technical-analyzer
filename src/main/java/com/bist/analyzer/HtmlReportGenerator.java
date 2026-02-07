@@ -222,7 +222,7 @@ public class HtmlReportGenerator {
         html.append("                </div>\n");
         html.append("            </div>\n");
         html.append("            <div class=\"charts\">\n");
-        html.append("                <img src=\"charts/").append(signal.symbol).append("_chart.png\" alt=\"Teknik Analiz Grafiği\" class=\"chart-img\">\n");
+        html.append("                <iframe src=\"charts/").append(signal.symbol).append("_chart.html\" frameborder=\"0\" class=\"chart-frame\" title=\"Teknik Analiz Grafiği\"></iframe>\n");
         html.append("            </div>\n");
         html.append("            <div class=\"analysis\">\n");
         html.append("                <h4>Teknik Analiz Detayları</h4>\n");
@@ -270,7 +270,7 @@ public class HtmlReportGenerator {
             ".info-item .label {display: block;font-size: 0.85em;color: #666;margin-bottom: 5px;} " +
             ".info-item .value {display: block;font-size: 1.2em;font-weight: 600;color: #667eea;} " +
             ".charts {margin-top: 20px;text-align: center;} " +
-            ".chart-img {width: 100%;max-width: 1600px;border-radius: 8px;box-shadow: 0 4px 12px rgba(0,0,0,0.15);} " +
+            ".chart-frame {width: 100%;height: 900px;max-width: 1800px;border-radius: 8px;box-shadow: 0 4px 12px rgba(0,0,0,0.15);} " +
             ".analysis {background: white;padding: 20px;border-radius: 8px;margin-top: 20px;border-left: 4px solid #764ba2;} " +
             ".analysis h4 {color: #764ba2;margin-bottom: 15px;font-size: 1.2em;} " +
             ".analysis-details {display: flex;flex-direction: column;gap: 10px;line-height: 1.8;} " +
@@ -298,8 +298,7 @@ public class HtmlReportGenerator {
             ".modal-content {margin: auto;display: block;max-width: 90%;max-height: 90%;margin-top: 50px;} " +
             ".modal-close {position: absolute;top: 30px;right: 45px;color: #f1f1f1;font-size: 50px;font-weight: bold;cursor: pointer;transition: 0.3s;} " +
             ".modal-close:hover {color: #bbb;} " +
-            ".chart-img {cursor: zoom-in;} " +
-            "@media (max-width: 768px) {.container {padding: 15px;} h1 {font-size: 1.8em;} .charts {grid-template-columns: 1fr;} .signals-table {font-size: 0.9em;} .signals-table td, .signals-table th {padding: 8px;} .back-to-top {bottom: 20px;right: 20px;width: 45px;height: 45px;font-size: 20px;}} ";
+            "@media (max-width: 768px) {.container {padding: 15px;} h1 {font-size: 1.8em;} .charts {grid-template-columns: 1fr;} .chart-frame {height: 600px;} .signals-table {font-size: 0.9em;} .signals-table td, .signals-table th {padding: 8px;} .back-to-top {bottom: 20px;right: 20px;width: 45px;height: 45px;font-size: 20px;}} ";
     }
 
     private static String getJavaScript() {

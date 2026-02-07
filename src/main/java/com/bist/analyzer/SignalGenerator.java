@@ -2,6 +2,10 @@ package com.bist.analyzer;
 
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Map;
+import java.util.HashMap;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class SignalGenerator {
     
@@ -576,216 +580,248 @@ public class SignalGenerator {
      * ENHANCED VERSION - Multiple confirmations required for HIGH PRECISION
      * Uses: EMA/SMA crossover + RSI + Volume + Price Action + Confluence
      */
+    /**
+     * Find historical BUY/SELL signals using THE SAME scoring system as analyzeStock()
+     * This ensures consistency between chart markers and report recommendations
+     */
     public static List<TradePoint> findHistoricalSignals(List<StockData> data,
                                                          double[] sma20, double[] sma50, 
                                                          double[] ema12, double[] rsi) {
         List<TradePoint> signals = new ArrayList<>();
         
         if (data.size() < 60) {
-            return signals; // Not enough data
+            return signals;
         }
         
-        // Calculate additional indicators for confluence
-        double[] ema50 = TechnicalIndicators.calculateEMA(data, 50);
+        // Calculate all needed indicators (same as analyzeStock)
+        double[] ema200 = TechnicalIndicators.calculateEMA(data, 200);
+        TechnicalIndicators.ADXResult adxResult = TechnicalIndicators.calculateADX(data, 14);
+        double[] adx = adxResult.adx;
         TechnicalIndicators.MACDResult macd = TechnicalIndicators.calculateMACD(data, 12, 26, 9);
+        TechnicalIndicators.BollingerBands bb = TechnicalIndicators.calculateBollingerBands(data, 20, 2.0);
+        double[] obv = TechnicalIndicators.calculateOBV(data);
         
-        // Calculate average volume for reference
-        double[] avgVolume = new double[data.size()];
-        for (int i = 20; i < data.size(); i++) {
-            double sum = 0;
-            for (int j = i - 19; j <= i; j++) {
-                sum += data.get(j).getVolume();
-            }
-            avgVolume[i] = sum / 20.0;
-        }
+        int lastSignalIndex = -10; // Track last signal to avoid too frequent signals
         
-        // Scan for HIGH-CONFIDENCE signals (start from index 60 for more data)
+        // Scan each historical day (same as report would)
         for (int i = 60; i < data.size() - 1; i++) {
-            // Skip if any indicator is NaN
-            if (Double.isNaN(ema12[i]) || Double.isNaN(ema12[i-1]) ||
-                Double.isNaN(sma20[i]) || Double.isNaN(sma20[i-1]) ||
-                Double.isNaN(sma50[i]) || Double.isNaN(sma50[i-1]) ||
-                Double.isNaN(ema50[i]) || Double.isNaN(rsi[i])) {
+            // Skip if too close to last signal
+            if (i - lastSignalIndex < 5) {
                 continue;
             }
             
-            double currentPrice = data.get(i).getClose();
-            double prevPrice = data.get(i-1).getClose();
-            double currentVolume = data.get(i).getVolume();
-            double volRatio = currentVolume / avgVolume[i];
+            // Skip if indicators are NaN
+            if (Double.isNaN(sma20[i]) || Double.isNaN(sma50[i]) || 
+                Double.isNaN(ema12[i]) || Double.isNaN(ema200[i]) || 
+                Double.isNaN(rsi[i]) || Double.isNaN(adx[i])) {
+                continue;
+            }
             
-            int confirmations = 0;
-            StringBuilder reason = new StringBuilder();
+            // === CALCULATE SCORE (EXACT SAME AS analyzeStock) ===
+            int trendScore = 0;
+            int momentumScore = 0;
+            int volumeScore = 0;
+            int priceActionScore = 0;
+            int confirmationCount = 0;
             
-            // === BUY SIGNALS (MULTI-CONFIRMATION) ===
+            StockData current = data.get(i);
+            double currentPrice = current.getClose();
             
-            // Check Trend Confirmation
-            boolean bullishTrend = ema12[i] > sma20[i] && sma20[i] > sma50[i];
-            boolean emaRising = ema12[i] > ema12[i-5];
+            // 1. TREND SCORE (EMA/SMA crossovers)
+            if (ema12[i] > sma20[i] && sma20[i] > sma50[i]) {
+                trendScore += 3;
+                confirmationCount++;
+            } else if (ema12[i] < sma20[i] && sma20[i] < sma50[i]) {
+                trendScore -= 3;
+                confirmationCount++;
+            }
             
-            // Check Momentum Confirmation
-            boolean rsiHealthy = rsi[i] > 35 && rsi[i] < 70;
-            boolean rsiRising = i >= 3 && rsi[i] > rsi[i-3];
-            
-            // Check Volume Confirmation (STRICTER)
-            boolean strongVolume = volRatio > 2.0; // Increased from 1.2x to 2.0x
-            
-            // Check Price Action
-            boolean priceBreaking = currentPrice > prevPrice;
-            
-            // Check MACD Support
-            boolean macdBullish = !Double.isNaN(macd.macdLine[i]) && 
-                                  !Double.isNaN(macd.signalLine[i]) &&
-                                  macd.macdLine[i] > macd.signalLine[i];
-            
-            // === BUY SIGNAL 1: Golden Cross with Multi-Confirmation ===
-            if (ema12[i-1] <= sma20[i-1] && ema12[i] > sma20[i]) {
-                reason.append("EMA12 x SMA20 ↑");
-                confirmations++;
-                
-                if (rsiHealthy && rsiRising) { confirmations++; reason.append(" + RSI OK"); }
-                if (strongVolume) { confirmations++; reason.append(" + Güçlü Hacim"); }
-                if (bullishTrend) { confirmations++; reason.append(" + Trend"); }
-                if (macdBullish) { confirmations++; reason.append(" + MACD"); }
-                
-                // Require at least 3 confirmations for BUY signal
-                if (confirmations >= 3) {
-                    signals.add(new TradePoint(i, "BUY", currentPrice, reason.toString()));
-                    i += 7; // Skip next 7 days (increased from 5)
-                    continue;
+            // Golden/Death Cross
+            if (i > 0) {
+                if (ema12[i-1] <= sma20[i-1] && ema12[i] > sma20[i]) {
+                    trendScore += 3;
+                    confirmationCount++;
+                } else if (ema12[i-1] >= sma20[i-1] && ema12[i] < sma20[i]) {
+                    trendScore -= 3;
+                    confirmationCount++;
                 }
             }
             
-            // === BUY SIGNAL 2: SMA50 Support Bounce (MULTI-LAYER) ===
-            confirmations = 0;
-            reason = new StringBuilder();
-            
-            if (i >= 2 && 
-                prevPrice < sma50[i-1] * 1.02 && prevPrice > sma50[i-1] * 0.98 && // Near SMA50
-                currentPrice > sma50[i] && currentPrice > prevPrice) { // Bounced up
+            // 2. MOMENTUM SCORE (RSI + MACD)
+            if (i >= 5) {
+                double rsiTrend = rsi[i] - rsi[i-5];
+                if (rsi[i] > 55 && rsiTrend > 0) {
+                    momentumScore += 2;
+                    confirmationCount++;
+                } else if (rsi[i] < 45 && rsiTrend < 0) {
+                    momentumScore -= 2;
+                    confirmationCount++;
+                }
                 
-                reason.append("SMA50 Destek");
-                confirmations++;
-                
-                if (rsiHealthy && rsi[i] < 50) { confirmations++; reason.append(" + RSI Düşük"); }
-                if (strongVolume) { confirmations++; reason.append(" + Hacim 2x"); }
-                if (emaRising) { confirmations++; reason.append(" + EMA Yükseliş"); }
-                if (macdBullish) { confirmations++; reason.append(" + MACD"); }
-                
-                // Require at least 4 confirmations for support bounce
-                if (confirmations >= 4) {
-                    signals.add(new TradePoint(i, "BUY", currentPrice, reason.toString()));
-                    i += 7;
-                    continue;
+                // RSI oversold/overbought reversal
+                if (rsi[i] < 30 && rsiTrend > 0) {
+                    momentumScore += 2;
+                    confirmationCount++;
+                } else if (rsi[i] > 70 && rsiTrend < 0) {
+                    momentumScore -= 2;
+                    confirmationCount++;
                 }
             }
             
-            // === BUY SIGNAL 3: RSI Oversold Recovery (STRICT) ===
-            confirmations = 0;
-            reason = new StringBuilder();
-            
-            if (rsi[i-1] < 30 && rsi[i] > 35 && rsi[i] < 55 && priceBreaking) {
-                reason.append("RSI Aşırı Satış Çıkış");
-                confirmations++;
+            // MACD crossovers
+            if (i > 1 && !Double.isNaN(macd.macdLine[i]) && !Double.isNaN(macd.signalLine[i])) {
+                double prevMacd = macd.macdLine[i-1];
+                double prevSignal = macd.signalLine[i-1];
                 
-                if (volRatio > 2.5) { confirmations++; reason.append(" + Aşırı Hacim"); } // Very high volume
-                if (bullishTrend) { confirmations++; reason.append(" + Trend Destekli"); }
-                if (macdBullish) { confirmations++; reason.append(" + MACD"); }
-                if (currentPrice > sma20[i]) { confirmations++; reason.append(" + SMA20 Üstü"); }
-                
-                // Require at least 4 confirmations for oversold reversal
-                if (confirmations >= 4) {
-                    signals.add(new TradePoint(i, "BUY", currentPrice, reason.toString()));
-                    i += 7;
-                    continue;
+                if (prevMacd <= prevSignal && macd.macdLine[i] > macd.signalLine[i]) {
+                    momentumScore += 3;
+                    confirmationCount++;
+                } else if (prevMacd >= prevSignal && macd.macdLine[i] < macd.signalLine[i]) {
+                    momentumScore -= 3;
+                    confirmationCount++;
                 }
             }
             
-            // === SELL SIGNALS (MULTI-CONFIRMATION) ===
+            // 3. VOLUME SCORE (breakout/breakdown + OBV)
+            double avgVolume = TechnicalIndicators.getAverageVolume(data, i, 20);
+            boolean volumeSpike = current.getVolume() > avgVolume * 2.0;
+            boolean strongVolumeSpike = current.getVolume() > avgVolume * 3.0;
             
-            // Check Bearish Trend
-            boolean bearishTrend = ema12[i] < sma20[i] && sma20[i] < sma50[i];
-            boolean emaFalling = ema12[i] < ema12[i-5];
+            double highest20 = TechnicalIndicators.getHighestHigh(data, i - 1, 20);
+            double lowest20 = TechnicalIndicators.getLowestLow(data, i - 1, 20);
             
-            // Check Momentum Weakness
-            boolean rsiWeak = rsi[i] > 30 && rsi[i] < 65;
-            boolean rsiFalling = i >= 3 && rsi[i] < rsi[i-3];
+            boolean breakout = !Double.isNaN(highest20) && currentPrice > highest20;
+            boolean breakdown = !Double.isNaN(lowest20) && currentPrice < lowest20;
             
-            // Check Price Action
-            boolean priceBreakdown = currentPrice < prevPrice;
+            if (breakout && strongVolumeSpike) {
+                volumeScore += 4;
+                confirmationCount++;
+            } else if (breakout && volumeSpike) {
+                volumeScore += 2;
+                confirmationCount++;
+            } else if (breakdown && strongVolumeSpike) {
+                volumeScore -= 4;
+                confirmationCount++;
+            } else if (breakdown && volumeSpike) {
+                volumeScore -= 2;
+                confirmationCount++;
+            }
             
-            // Check MACD Weakness
-            boolean macdBearish = !Double.isNaN(macd.macdLine[i]) && 
-                                  !Double.isNaN(macd.signalLine[i]) &&
-                                  macd.macdLine[i] < macd.signalLine[i];
+            // OBV confirmation
+            double obv20High = TechnicalIndicators.getHighestValue(obv, i, 20);
+            double obv20Low = TechnicalIndicators.getLowestValue(obv, i, 20);
             
-            // === SELL SIGNAL 1: Death Cross with Multi-Confirmation ===
-            confirmations = 0;
-            reason = new StringBuilder();
-            
-            if (ema12[i-1] >= sma20[i-1] && ema12[i] < sma20[i]) {
-                reason.append("EMA12 x SMA20 ↓");
-                confirmations++;
-                
-                if (rsiWeak && rsiFalling) { confirmations++; reason.append(" + RSI Zayıf"); }
-                if (strongVolume) { confirmations++; reason.append(" + Güçlü Hacim"); }
-                if (bearishTrend) { confirmations++; reason.append(" + Ayı Trendi"); }
-                if (macdBearish) { confirmations++; reason.append(" + MACD"); }
-                
-                // Require at least 3 confirmations for SELL signal
-                if (confirmations >= 3) {
-                    signals.add(new TradePoint(i, "SELL", currentPrice, reason.toString()));
-                    i += 7;
-                    continue;
+            if (i >= 10 && obv[i] >= obv20High) {
+                double obvTrend = obv[i] - obv[i-10];
+                if (obvTrend > 0) {
+                    volumeScore += 2;
+                    confirmationCount++;
+                }
+            } else if (i >= 10 && obv[i] <= obv20Low) {
+                double obvTrend = obv[i] - obv[i-10];
+                if (obvTrend < 0) {
+                    volumeScore -= 2;
+                    confirmationCount++;
                 }
             }
             
-            // === SELL SIGNAL 2: SMA50 Resistance Rejection ===
-            confirmations = 0;
-            reason = new StringBuilder();
-            
-            if (i >= 2 &&
-                prevPrice > sma50[i-1] * 0.98 && prevPrice < sma50[i-1] * 1.02 && // Near SMA50
-                currentPrice < sma50[i] && currentPrice < prevPrice) { // Rejected down
+            // 4. PRICE ACTION SCORE (Higher Highs/Lower Lows)
+            if (i >= 20) {
+                double prevHigh = Double.MIN_VALUE;
+                double prevLow = Double.MAX_VALUE;
+                for (int j = i - 20; j < i - 10; j++) {
+                    prevHigh = Math.max(prevHigh, data.get(j).getHigh());
+                    prevLow = Math.min(prevLow, data.get(j).getLow());
+                }
+                double recentHigh = Double.MIN_VALUE;
+                double recentLow = Double.MAX_VALUE;
+                for (int j = i - 10; j <= i; j++) {
+                    recentHigh = Math.max(recentHigh, data.get(j).getHigh());
+                    recentLow = Math.min(recentLow, data.get(j).getLow());
+                }
                 
-                reason.append("SMA50 Direnç");
-                confirmations++;
-                
-                if (rsiWeak && rsi[i] > 50) { confirmations++; reason.append(" + RSI Yüksek"); }
-                if (strongVolume) { confirmations++; reason.append(" + Hacim 2x"); }
-                if (emaFalling) { confirmations++; reason.append(" + EMA Düşüş"); }
-                if (macdBearish) { confirmations++; reason.append(" + MACD"); }
-                
-                // Require at least 4 confirmations for resistance rejection
-                if (confirmations >= 4) {
-                    signals.add(new TradePoint(i, "SELL", currentPrice, reason.toString()));
-                    i += 7;
-                    continue;
+                if (recentHigh > prevHigh && recentLow > prevLow) {
+                    priceActionScore += 3;
+                    confirmationCount++;
+                } else if (recentHigh < prevHigh && recentLow < prevLow) {
+                    priceActionScore -= 3;
+                    confirmationCount++;
                 }
             }
             
-            // === SELL SIGNAL 3: RSI Overbought Reversal (STRICT) ===
-            confirmations = 0;
-            reason = new StringBuilder();
+            // TOTAL SCORE (same as analyzeStock)
+            int totalScore = trendScore + momentumScore + volumeScore + priceActionScore;
             
-            if (rsi[i-1] > 70 && rsi[i] < 65 && rsi[i] > 45 && priceBreakdown) {
-                reason.append("RSI Aşırı Alım Dönüş");
-                confirmations++;
+            // ADX bonus for strong trends
+            if (!Double.isNaN(adx[i]) && adx[i] > 25) {
+                int adxBonus = totalScore > 0 ? 2 : (totalScore < 0 ? -2 : 0);
+                totalScore += adxBonus;
+            }
+            
+            // CONFLUENCE CHECK (same thresholds as report)
+            boolean hasStrongConfluence = confirmationCount >= 3;
+            boolean hasMinimumConfluence = confirmationCount >= 2;
+            
+            // GENERATE SIGNALS (same thresholds as report)
+            // Strong BUY: score >= 6, confluence >= 3
+            // BUY: score >= 4, confluence >= 2
+            // Strong SELL: score <= -6, confluence >= 3
+            // SELL: score <= -4, confluence >= 2
+            
+            String signalType = null;
+            String reason = "";
+            
+            if (totalScore >= 6 && hasStrongConfluence) {
+                signalType = "BUY"; // Mark as BUY (strong signals on chart)
+                reason = "Güçlü AL (Skor: " + totalScore + ", " + confirmationCount + " gösterge)";
+            } else if (totalScore >= 4 && hasMinimumConfluence) {
+                signalType = "BUY"; // Mark as BUY (regular signals on chart)
+                reason = "AL (Skor: " + totalScore + ", " + confirmationCount + " gösterge)";
+            } else if (totalScore <= -6 && hasStrongConfluence) {
+                signalType = "SELL"; // Mark as SELL (strong signals on chart)
+                reason = "Güçlü SAT (Skor: " + totalScore + ", " + confirmationCount + " gösterge)";
+            } else if (totalScore <= -4 && hasMinimumConfluence) {
+                signalType = "SELL"; // Mark as SELL (regular signals on chart)
+                reason = "SAT (Skor: " + totalScore + ", " + confirmationCount + " gösterge)";
+            }
+            
+            if (signalType != null) {
+                signals.add(new TradePoint(i, signalType, currentPrice, reason));
+                lastSignalIndex = i;
+            }
+        }
+        
+        // Filter signals to keep only the strongest one per calendar day
+        // This prevents contradictory BUY/SELL signals on the same day
+        List<TradePoint> filteredSignals = new ArrayList<>();
+        Map<String, TradePoint> signalsByDate = new java.util.LinkedHashMap<>();
+        
+        for (TradePoint signal : signals) {
+            if (signal.index < 0 || signal.index >= data.size()) continue;
+            
+            long timestamp = data.get(signal.index).getTimestamp();
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd");
+            String dateKey = sdf.format(new java.util.Date(timestamp));
+            
+            if (!signalsByDate.containsKey(dateKey)) {
+                signalsByDate.put(dateKey, signal);
+            } else {
+                // Keep signal with higher absolute score
+                TradePoint existing = signalsByDate.get(dateKey);
+                int existingScore = Integer.parseInt(existing.reason.replaceAll("[^-0-9]", "").split("[,]")[0]);
+                int newScore = Integer.parseInt(signal.reason.replaceAll("[^-0-9]", "").split("[,]")[0]);
                 
-                if (volRatio > 2.5) { confirmations++; reason.append(" + Aşırı Hacim"); }
-                if (bearishTrend) { confirmations++; reason.append(" + Ayı Trendi"); }
-                if (macdBearish) { confirmations++; reason.append(" + MACD"); }
-                if (currentPrice < sma20[i]) { confirmations++; reason.append(" + SMA20 Altı"); }
-                
-                // Require at least 4 confirmations for overbought reversal
-                if (confirmations >= 4) {
-                    signals.add(new TradePoint(i, "SELL", currentPrice, reason.toString()));
-                    i += 7;
-                    continue;
+                if (Math.abs(newScore) > Math.abs(existingScore)) {
+                    signalsByDate.put(dateKey, signal);
                 }
             }
         }
         
-        return signals;
+        // Add filtered signals back
+        for (TradePoint signal : signalsByDate.values()) {
+            filteredSignals.add(signal);
+        }
+        
+        return filteredSignals;
     }
 }
