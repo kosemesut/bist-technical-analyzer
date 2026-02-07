@@ -9,6 +9,9 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.LinkedHashMap;
+import java.util.ArrayList;
 
 /**
  * Interactive chart generator using Plotly.js
@@ -17,6 +20,79 @@ import java.util.Locale;
 public class ChartGenerator {
     
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+    
+    // Inner class to hold daily OHLC data
+    public static class DailyData {
+        public String date;              // yyyy-MM-dd
+        public double open;              // First hour's open price
+        public double high;              // Highest price of day
+        public double low;               // Lowest price of day
+        public double close;             // Last hour's close price
+        public String closingTime;       // HH:mm of last transaction
+        public long timestamp;           // Timestamp of last transaction
+        public SignalGenerator.TradePoint signal;  // Signal if occurred on this day
+
+        public DailyData(String date, double open, double high, double low, double close) {
+            this.date = date;
+            this.open = open;
+            this.high = high;
+            this.low = low;
+            this.close = close;
+            this.closingTime = "";
+            this.timestamp = 0;
+            this.signal = null;
+        }
+    }
+    
+    // Helper class for signal information
+    private static class SignalData {
+        public String type;   // BUY or SELL
+        public String time;   // HH:mm
+        public SignalGenerator.TradePoint source;  // Original signal
+        
+        public SignalData(String type, String time, SignalGenerator.TradePoint source) {
+            this.type = type;
+            this.time = time;
+            this.source = source;
+        }
+    }
+    
+    /**
+     * Aggregate hourly data to daily OHLC - ensures ONE point per day
+     * Properly maintains: open=first hour, high=max, low=min, close=last hour
+     */
+    private static Map<String, DailyData> aggregateToDailyOHLC(List<StockData> hourlyData) {
+        Map<String, DailyData> dailyMap = new LinkedHashMap<>();
+        SimpleDateFormat dateOnlyFormat = new SimpleDateFormat("yyyy-MM-dd");
+        SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm");
+        
+        for (StockData hourly : hourlyData) {
+            String dateStr = dateOnlyFormat.format(new Date(hourly.getTimestamp()));
+            String timeStr = timeFormat.format(new Date(hourly.getTimestamp()));
+            
+            if (!dailyMap.containsKey(dateStr)) {
+                // First data point for this day - set OHLC with this hour's values
+                DailyData daily = new DailyData(dateStr, 
+                    hourly.getOpen(),                    // open = first hour's open
+                    hourly.getHigh(),                    // high = first hour's high
+                    hourly.getLow(),                     // low = first hour's low  
+                    hourly.getClose());                  // close = first hour's close (will be updated)
+                daily.closingTime = timeStr;
+                daily.timestamp = hourly.getTimestamp();
+                dailyMap.put(dateStr, daily);
+            } else {
+                // Subsequent data points for same day - update OHLC
+                DailyData daily = dailyMap.get(dateStr);
+                daily.high = Math.max(daily.high, hourly.getHigh());
+                daily.low = Math.min(daily.low, hourly.getLow());
+                daily.close = hourly.getClose();         // close = last hour's close
+                daily.closingTime = timeStr;             // closingTime = last hour's time
+                daily.timestamp = hourly.getTimestamp(); // timestamp = last hour's timestamp
+            }
+        }
+        
+        return dailyMap;
+    }
     
     /**
      * Generate interactive HTML chart (replaces old PNG chart)
@@ -146,6 +222,67 @@ public class ChartGenerator {
             }
         }
         
+        // Aggregate hourly data to daily OHLC for display
+        Map<String, DailyData> dailyMap = aggregateToDailyOHLC(data.subList(startIndex, data.size()));
+        
+        // Map signals to daily data and preserve signal timestamp
+        Map<String, SignalData> signalsByDay = new LinkedHashMap<>();
+        SimpleDateFormat dateOnlyFormat = new SimpleDateFormat("yyyy-MM-dd");
+        SimpleDateFormat timeOnlyFormat = new SimpleDateFormat("HH:mm");
+        
+        for (SignalGenerator.TradePoint signal : tradeSignals) {
+            if (signal.index >= startIndex && signal.index < data.size()) {
+                StockData signalData = data.get(signal.index);
+                String dateStr = dateOnlyFormat.format(new Date(signalData.getTimestamp()));
+                String timeStr = timeOnlyFormat.format(new Date(signalData.getTimestamp()));
+                signalsByDay.put(dateStr, new SignalData(signal.type, timeStr, signal));
+            }
+        }
+        
+        // Build daily data arrays with proper customdata
+        List<String> dailyDates = new ArrayList<>();
+        List<Double> dailyOpens = new ArrayList<>();
+        List<Double> dailyCloses = new ArrayList<>();
+        List<Double> dailyHighs = new ArrayList<>();
+        List<Double> dailyLows = new ArrayList<>();
+        List<String> closingTimes = new ArrayList<>();
+        List<Double> dailyChanges = new ArrayList<>();
+        List<String> signals = new ArrayList<>();
+        List<String> signalTimes = new ArrayList<>();
+        
+        double prevClose = 0;
+        for (DailyData daily : dailyMap.values()) {
+            dailyDates.add(daily.date);
+            dailyOpens.add(daily.open);
+            dailyCloses.add(daily.close);
+            dailyHighs.add(daily.high);
+            dailyLows.add(daily.low);
+            closingTimes.add(daily.closingTime);
+            
+            // Calculate daily change % (vs previous day's close)
+            double change = 0;
+            if (prevClose > 0) {
+                change = ((daily.close - prevClose) / prevClose) * 100;
+            }
+            if (Double.isNaN(change) || Double.isInfinite(change)) {
+                change = 0.0;
+            }
+            dailyChanges.add(change);
+            
+            // Get signal info if available for this day
+            String signalText = "";
+            String signalTime = "";
+            if (signalsByDay.containsKey(daily.date)) {
+                SignalData sig = signalsByDay.get(daily.date);
+                signalText = sig.type;
+                signalTime = sig.time;
+            }
+            signals.add(signalText);
+            signalTimes.add(signalTime);
+            
+            prevClose = daily.close;
+        }
+        
         // Build HTML with Plotly.js
         StringBuilder html = new StringBuilder();
         
@@ -169,161 +306,212 @@ public class ChartGenerator {
         html.append("    </div>\n");
         html.append("    <script>\n");
         
-        // Prepare data arrays for Plotly (filtered to display range)
-        html.append("        // Data preparation\n");
-        SimpleDateFormat dateOnlyFormat = new SimpleDateFormat("yyyy-MM-dd");
-        SimpleDateFormat timeOnlyFormat = new SimpleDateFormat("HH:mm");
+        // Prepare data arrays for Plotly (daily aggregated)
+        html.append("        // Data preparation (daily aggregated)\n");
         
+        // Daily dates
         html.append("        var dates = [");
-        for (int i = startIndex; i < data.size(); i++) {
-            if (i > startIndex) html.append(", ");
-            html.append("'").append(dateOnlyFormat.format(new Date(data.get(i).getTimestamp()))).append("'");
+        for (int i = 0; i < dailyDates.size(); i++) {
+            if (i > 0) html.append(", ");
+            html.append("'").append(dailyDates.get(i)).append("'");
         }
         html.append("]\n\n");
         
-        // Display text for prices (date + time)
-        html.append("        var priceText = [");
-        for (int i = startIndex; i < data.size(); i++) {
-            if (i > startIndex) html.append(", ");
-            String dateStr = dateOnlyFormat.format(new Date(data.get(i).getTimestamp()));
-            String timeStr = timeOnlyFormat.format(new Date(data.get(i).getTimestamp()));
-            html.append("'").append(dateStr).append("\\nSaat: ").append(timeStr).append("'");
-        }
-        html.append("]\n\n");
-        
-        // Display text for signals (date + signal time)
-        html.append("        var signalText = [");
-        for (int i = startIndex; i < data.size(); i++) {
-            if (i > startIndex) html.append(", ");
-            String dateStr = dateOnlyFormat.format(new Date(data.get(i).getTimestamp()));
-            String timeStr = timeOnlyFormat.format(new Date(data.get(i).getTimestamp()));
-            html.append("'").append(dateStr).append("\\nSinyal Saati: ").append(timeStr).append("'");
-        }
-        html.append("]\n\n");
-        
-        // Price data
+        // Daily closing prices (for main chart)
         html.append("        var prices = [");
-        for (int i = startIndex; i < data.size(); i++) {
-            if (i > startIndex) html.append(", ");
-            html.append(String.format(Locale.US, "%.2f", data.get(i).getClose()));
+        for (int i = 0; i < dailyCloses.size(); i++) {
+            if (i > 0) html.append(", ");
+            html.append(String.format(Locale.US, "%.2f", dailyCloses.get(i)));
         }
         html.append("];\n\n");
-                // Daily change %
+        
+        // Opening prices
+        html.append("        var opens = [");
+        for (int i = 0; i < dailyOpens.size(); i++) {
+            if (i > 0) html.append(", ");
+            html.append(String.format(Locale.US, "%.2f", dailyOpens.get(i)));
+        }
+        html.append("];\n\n");
+        
+        // High prices
+        html.append("        var highs = [");
+        for (int i = 0; i < dailyHighs.size(); i++) {
+            if (i > 0) html.append(", ");
+            html.append(String.format(Locale.US, "%.2f", dailyHighs.get(i)));
+        }
+        html.append("];\n\n");
+        
+        // Low prices
+        html.append("        var lows = [");
+        for (int i = 0; i < dailyLows.size(); i++) {
+            if (i > 0) html.append(", ");
+            html.append(String.format(Locale.US, "%.2f", dailyLows.get(i)));
+        }
+        html.append("];\n\n");
+        
+        // Daily changes
         html.append("        var dailyChanges = [");
-        for (int i = startIndex; i < data.size(); i++) {
-            if (i > startIndex) html.append(", ");
-            double open = data.get(i).getOpen();
-            double close = data.get(i).getClose();
-            double dailyChange = 0;
-            // Calculate daily change if open is valid and non-zero
-            if (!Double.isNaN(open) && !Double.isNaN(close) && open > 0) {
-                dailyChange = (close - open) / open * 100;
-            }
-            // Ensure we don't have NaN or Infinity
-            if (Double.isNaN(dailyChange) || Double.isInfinite(dailyChange)) {
-                dailyChange = 0.0;
-            }
-            html.append(String.format(Locale.US, "%.2f", dailyChange));
+        for (int i = 0; i < dailyChanges.size(); i++) {
+            if (i > 0) html.append(", ");
+            html.append(String.format(Locale.US, "%.2f", dailyChanges.get(i)));
         }
-        html.append("]\n\n");
-                // SMA20
+        html.append("];\n\n");
+        
+        // Closing times
+        html.append("        var closingTimes = [");
+        for (int i = 0; i < closingTimes.size(); i++) {
+            if (i > 0) html.append(", ");
+            html.append("'").append(closingTimes.get(i)).append("'");
+        }
+        html.append("];\n\n");
+        
+        // Signal types
+        html.append("        var signalTypes = [");
+        for (int i = 0; i < signals.size(); i++) {
+            if (i > 0) html.append(", ");
+            html.append("'").append(signals.get(i)).append("'");
+        }
+        html.append("];\n\n");
+        
+        // Signal times
+        html.append("        var signalTimes = [");
+        for (int i = 0; i < signalTimes.size(); i++) {
+            if (i > 0) html.append(", ");
+            html.append("'").append(signalTimes.get(i)).append("'");
+        }
+        html.append("];\n\n");
+        
+        // SMA20 (daily downsampled from hourly)
         html.append("        var sma20 = [");
-        for (int i = startIndex; i < sma20.length; i++) {
-            if (i > startIndex) html.append(", ");
-            if (Double.isNaN(sma20[i])) {
-                html.append("null");
+        for (int i = 0; i < dailyDates.size(); i++) {
+            if (i > 0) html.append(", ");
+            String dateStr = dailyDates.get(i);
+            // Find last hourly index for this date
+            int hourlyIndex = startIndex;
+            for (int j = startIndex; j < data.size(); j++) {
+                if (dateOnlyFormat.format(new Date(data.get(j).getTimestamp())).equals(dateStr)) {
+                    hourlyIndex = j;
+                } else if (dateOnlyFormat.format(new Date(data.get(j).getTimestamp())).compareTo(dateStr) > 0) {
+                    break;
+                }
+            }
+            if (hourlyIndex < sma20.length && !Double.isNaN(sma20[hourlyIndex])) {
+                html.append(String.format(Locale.US, "%.2f", sma20[hourlyIndex]));
             } else {
-                html.append(String.format(Locale.US, "%.2f", sma20[i]));
+                html.append("null");
             }
         }
         html.append("];\n\n");
         
-        // SMA50
+        // SMA50 (daily downsampled)
         html.append("        var sma50 = [");
-        for (int i = startIndex; i < sma50.length; i++) {
-            if (i > startIndex) html.append(", ");
-            if (Double.isNaN(sma50[i])) {
-                html.append("null");
+        for (int i = 0; i < dailyDates.size(); i++) {
+            if (i > 0) html.append(", ");
+            String dateStr = dailyDates.get(i);
+            int hourlyIndex = startIndex;
+            for (int j = startIndex; j < data.size(); j++) {
+                if (dateOnlyFormat.format(new Date(data.get(j).getTimestamp())).equals(dateStr)) {
+                    hourlyIndex = j;
+                } else if (dateOnlyFormat.format(new Date(data.get(j).getTimestamp())).compareTo(dateStr) > 0) {
+                    break;
+                }
+            }
+            if (hourlyIndex < sma50.length && !Double.isNaN(sma50[hourlyIndex])) {
+                html.append(String.format(Locale.US, "%.2f", sma50[hourlyIndex]));
             } else {
-                html.append(String.format(Locale.US, "%.2f", sma50[i]));
+                html.append("null");
             }
         }
         html.append("];\n\n");
         
-        // EMA12
+        // EMA12 (daily downsampled)
         html.append("        var ema12 = [");
-        for (int i = startIndex; i < ema12.length; i++) {
-            if (i > startIndex) html.append(", ");
-            if (Double.isNaN(ema12[i])) {
-                html.append("null");
+        for (int i = 0; i < dailyDates.size(); i++) {
+            if (i > 0) html.append(", ");
+            String dateStr = dailyDates.get(i);
+            int hourlyIndex = startIndex;
+            for (int j = startIndex; j < data.size(); j++) {
+                if (dateOnlyFormat.format(new Date(data.get(j).getTimestamp())).equals(dateStr)) {
+                    hourlyIndex = j;
+                } else if (dateOnlyFormat.format(new Date(data.get(j).getTimestamp())).compareTo(dateStr) > 0) {
+                    break;
+                }
+            }
+            if (hourlyIndex < ema12.length && !Double.isNaN(ema12[hourlyIndex])) {
+                html.append(String.format(Locale.US, "%.2f", ema12[hourlyIndex]));
             } else {
-                html.append(String.format(Locale.US, "%.2f", ema12[i]));
+                html.append("null");
             }
         }
         html.append("];\n\n");
         
-        // RSI
+        // RSI (daily downsampled)
         html.append("        var rsi = [");
-        for (int i = startIndex; i < rsi.length; i++) {
-            if (i > startIndex) html.append(", ");
-            if (Double.isNaN(rsi[i])) {
-                html.append("null");
+        for (int i = 0; i < dailyDates.size(); i++) {
+            if (i > 0) html.append(", ");
+            String dateStr = dailyDates.get(i);
+            int hourlyIndex = startIndex;
+            for (int j = startIndex; j < data.size(); j++) {
+                if (dateOnlyFormat.format(new Date(data.get(j).getTimestamp())).equals(dateStr)) {
+                    hourlyIndex = j;
+                } else if (dateOnlyFormat.format(new Date(data.get(j).getTimestamp())).compareTo(dateStr) > 0) {
+                    break;
+                }
+            }
+            if (hourlyIndex < rsi.length && !Double.isNaN(rsi[hourlyIndex])) {
+                html.append(String.format(Locale.US, "%.2f", rsi[hourlyIndex]));
             } else {
-                html.append(String.format(Locale.US, "%.2f", rsi[i]));
+                html.append("null");
             }
         }
         html.append("];\n\n");
         
-        // BUY/SELL signals
+        // Build BUY/SELL signals from daily data
         html.append("        // BUY/SELL signals\n");
         html.append("        var buyDates = [], buyPrices = [], buyTexts = [];\n");
         html.append("        var sellDates = [], sellPrices = [], sellTexts = [];\n");
         
-        SimpleDateFormat dateOnlyFormat2 = new SimpleDateFormat("yyyy-MM-dd");
-        SimpleDateFormat timeOnlyFormat2 = new SimpleDateFormat("HH:mm");
-        
-        for (SignalGenerator.TradePoint signal : tradeSignals) {
-            // Skip signals outside display range
-            if (signal.index < startIndex) continue;
-            
-            String date = DATE_FORMAT.format(new Date(data.get(signal.index).getTimestamp()));
-            String dateOnly = dateOnlyFormat2.format(new Date(data.get(signal.index).getTimestamp()));
-            String timeOnly = timeOnlyFormat2.format(new Date(data.get(signal.index).getTimestamp()));
-            double price = signal.price;
-            // Sadece kısa sinyal etiketi (ör: SAT (%67) veya Güçlü AL (%82))
-            String shortLabel = "";
-            if (signal.reason.contains("Güçlü AL")) shortLabel = "Güçlü AL (%82)";
-            else if (signal.reason.contains("AL")) shortLabel = "AL (%67)";
-            else if (signal.reason.contains("Güçlü SAT")) shortLabel = "Güçlü SAT (%82)";
-            else if (signal.reason.contains("SAT")) shortLabel = "SAT (%67)";
-            else shortLabel = signal.reason.replace("'", "\\'");
-            
-            String displayText = "<b>" + dateOnly + "</b>\\nSaat: " + timeOnly + "\\n" + shortLabel;
-            
-            if (signal.type.equals("BUY")) {
-                html.append("        buyDates.push('").append(date).append("');\n");
-                html.append("        buyPrices.push(").append(String.format(Locale.US, "%.2f", price)).append(");\n");
-                html.append("        buyTexts.push('").append(displayText).append("');\n");
-            } else if (signal.type.equals("SELL")) {
-                html.append("        sellDates.push('").append(date).append("');\n");
-                html.append("        sellPrices.push(").append(String.format(Locale.US, "%.2f", price)).append(");\n");
-                html.append("        sellTexts.push('").append(displayText).append("');\n");
+        for (int i = 0; i < dailyDates.size(); i++) {
+            String dailyDate = dailyDates.get(i);
+            if (signalsByDay.containsKey(dailyDate)) {
+                SignalData sig = signalsByDay.get(dailyDate);
+                double price = dailyCloses.get(i);
+                double open = dailyOpens.get(i);
+                double change = dailyChanges.get(i);
+                String closingTime = closingTimes.get(i);
+                // Build complete hover text with all 7 fields
+                String displayText = "<b>Tarih: "+dailyDate+"</b><br>Açılış: "+String.format(Locale.US, "%.2f", open)+" TL<br>Kapanış: "+String.format(Locale.US, "%.2f", price)+" TL<br>Günlük Değişim: "+String.format(Locale.US, "%.2f", change)+"%<br>Kapanış Saati: "+closingTime+"<br>Sinyal: "+sig.type+"<br>Sinyal Saati: "+sig.time;
+                
+                if (sig.type.equals("BUY")) {
+                    html.append("        buyDates.push('").append(dailyDate).append("');\n");
+                    html.append("        buyPrices.push(").append(String.format(Locale.US, "%.2f", price)).append(");\n");
+                    html.append("        buyTexts.push('").append(displayText).append("');\n");
+                } else if (sig.type.equals("SELL")) {
+                    html.append("        sellDates.push('").append(dailyDate).append("');\n");
+                    html.append("        sellPrices.push(").append(String.format(Locale.US, "%.2f", price)).append(");\n");
+                    html.append("        sellTexts.push('").append(displayText).append("');\n");
+                }
             }
         }
         html.append("\n");
         
         // Create Plotly traces
+        html.append("        // Build custom data for hover template\n");
+        html.append("        var customdata = [];\n");
+        html.append("        for (let i = 0; i < dates.length; i++) {\n");
+        html.append("            customdata.push([opens[i], dailyChanges[i], closingTimes[i], signalTypes[i], signalTimes[i]]);\n");
+        html.append("        }\n\n");
+        
         html.append("        // Price chart traces\n");
         html.append("        var tracePrice = {\n");
         html.append("            x: dates,\n");
         html.append("            y: prices,\n");
-        html.append("            text: priceText,\n");
-        html.append("            customdata: dailyChanges,\n");
+        html.append("            customdata: customdata,\n");
         html.append("            type: 'scatter',\n");
         html.append("            mode: 'lines',\n");
         html.append("            name: 'Kapanış Fiyatı',\n");
         html.append("            line: { color: '#1a1a1a', width: 2 },\n");
-        html.append("            hovertemplate: '<b>%{text}</b><br>Fiyat: %{y:.2f} TL<br>Günlük Değişim: %{customdata:.2f}%<extra></extra>',\n");
+        html.append("            hovertemplate: '<b>Tarih: %{x}</b><br>Açılış: %{customdata[0]:.2f} TL<br>Kapanış: %{y:.2f} TL<br>Günlük Değişim: %{customdata[1]:.2f}%<br>Kapanış Saati: %{customdata[2]}<br>Sinyal: %{customdata[3]}<br>Sinyal Saati: %{customdata[4]}<extra></extra>',\n");
         html.append("            yaxis: 'y'\n");
         html.append("        };\n\n");
         
@@ -335,6 +523,7 @@ public class ChartGenerator {
         html.append("            name: 'SMA20',\n");
         html.append("            line: { color: '#4285F4', width: 1.5, dash: 'dot' },\n");
         html.append("            hovertemplate: '<b>%{x|%Y-%m-%d %H:%M}</b><br>SMA20: %{y:.2f} TL<extra></extra>',\n");
+        html.append("            visible: false,\n");
         html.append("            yaxis: 'y'\n");
         html.append("        };\n\n");
         
@@ -346,6 +535,7 @@ public class ChartGenerator {
         html.append("            name: 'SMA50',\n");
         html.append("            line: { color: '#FBBC05', width: 1.5, dash: 'dot' },\n");
         html.append("            hovertemplate: '<b>%{x|%Y-%m-%d %H:%M}</b><br>SMA50: %{y:.2f} TL<extra></extra>',\n");
+        html.append("            visible: false,\n");
         html.append("            yaxis: 'y'\n");
         html.append("        };\n\n");
         
@@ -357,36 +547,7 @@ public class ChartGenerator {
         html.append("            name: 'EMA12',\n");
         html.append("            line: { color: '#34D399', width: 1.5, dash: 'dash' },\n");
         html.append("            hovertemplate: '<b>%{x|%Y-%m-%d %H:%M}</b><br>EMA12: %{y:.2f} TL<extra></extra>',\n");
-        html.append("            yaxis: 'y'\n");
-        html.append("        };\n\n");
-        
-        // Merge BUY and SELL into single signal line (chronological)
-        html.append("        var signalLine = [];\n");
-        html.append("        for (let i = 0; i < buyDates.length; i++) {\n");
-        html.append("            signalLine.push({date: buyDates[i], price: buyPrices[i], type: 'BUY'});\n");
-        html.append("        }\n");
-        html.append("        for (let i = 0; i < sellDates.length; i++) {\n");
-        html.append("            signalLine.push({date: sellDates[i], price: sellPrices[i], type: 'SELL'});\n");
-        html.append("        }\n");
-        html.append("        signalLine.sort((a, b) => new Date(a.date) - new Date(b.date));\n");
-        html.append("        var signalLineX = signalLine.map(p => p.date);\n");
-        html.append("        var signalLineY = signalLine.map(p => p.price);\n");
-        html.append("        var signalLineText = signalLine.map(p => {\n");
-        html.append("            var parts = p.date.split(' ');\n");
-        html.append("            return '<b>' + parts[0] + '</b>' + '\\nSinyal Saati: ' + parts[1];\n");
-        html.append("        });\n\n");
-        
-        // Signal line trace (connects all signal points)
-        html.append("        var traceSignalLine = {\n");
-        html.append("            x: signalLineX,\n");
-        html.append("            y: signalLineY,\n");
-        html.append("            text: signalLineText,\n");
-        html.append("            type: 'scatter',\n");
-        html.append("            mode: 'lines+markers',\n");
-        html.append("            name: 'Sinyal Fiyatı (Turuncu)',\n");
-        html.append("            line: { color: '#F97316', width: 2, dash: 'solid' },\n");
-        html.append("            marker: { color: '#F97316', size: 6 },\n");
-        html.append("            hovertemplate: '%{text}<br>Sinyal Fiyatı: %{y:.2f} TL<extra></extra>',\n");
+        html.append("            visible: false,\n");
         html.append("            yaxis: 'y'\n");
         html.append("        };\n\n");
         
@@ -399,7 +560,7 @@ public class ChartGenerator {
         html.append("            mode: 'markers',\n");
         html.append("            name: 'AL Sinyali',\n");
         html.append("            marker: { color: '#22C55E', size: 12, symbol: 'triangle-up', line: { color: '#fff', width: 2 } },\n");
-        html.append("            hovertemplate: '%{text}<br>Fiyat: %{y:.2f} TL<extra></extra>',\n");
+        html.append("            hovertemplate: '%{text}<br>Sinyal Fiyatı: %{y:.2f} TL<extra></extra>',\n");
         html.append("            yaxis: 'y'\n");
         html.append("        };\n\n");
         
@@ -412,7 +573,7 @@ public class ChartGenerator {
         html.append("            mode: 'markers',\n");
         html.append("            name: 'SAT Sinyali',\n");
         html.append("            marker: { color: '#EF4444', size: 12, symbol: 'triangle-down', line: { color: '#fff', width: 2 } },\n");
-        html.append("            hovertemplate: '%{text}<br>Fiyat: %{y:.2f} TL<extra></extra>',\n");
+        html.append("            hovertemplate: '%{text}<br>Sinyal Fiyatı: %{y:.2f} TL<extra></extra>',\n");
         html.append("            yaxis: 'y'\n");
         html.append("        };\n\n");
         
@@ -426,6 +587,7 @@ public class ChartGenerator {
         html.append("            name: 'RSI(14)',\n");
         html.append("            line: { color: '#A855F7', width: 2 },\n");
         html.append("            hovertemplate: '<b>%{x}</b><br>RSI: %{y:.1f}<extra></extra>',\n");
+        html.append("            visible: false,\n");
         html.append("            yaxis: 'y2',\n");
         html.append("            xaxis: 'x'\n");
         html.append("        };\n\n");
@@ -438,6 +600,7 @@ public class ChartGenerator {
         html.append("            mode: 'lines',\n");
         html.append("            name: 'RSI 70 (Aşırı Alım)',\n");
         html.append("            line: { color: '#EF4444', width: 1, dash: 'dash' },\n");
+        html.append("            visible: false,\n");
         html.append("            showlegend: false,\n");
         html.append("            hoverinfo: 'skip',\n");
         html.append("            yaxis: 'y2',\n");
@@ -451,6 +614,7 @@ public class ChartGenerator {
         html.append("            mode: 'lines',\n");
         html.append("            name: 'RSI 30 (Aşırı Satış)',\n");
         html.append("            line: { color: '#22C55E', width: 1, dash: 'dash' },\n");
+        html.append("            visible: false,\n");
         html.append("            showlegend: false,\n");
         html.append("            hoverinfo: 'skip',\n");
         html.append("            yaxis: 'y2',\n");
@@ -511,7 +675,7 @@ public class ChartGenerator {
         
         // Plot
         html.append("        // Render chart\n");
-        html.append("        var data = [tracePrice, traceSignalLine, traceSMA20, traceSMA50, traceEMA12, traceBuySignals, traceSellSignals, traceRSI, traceRSI70, traceRSI30];\n");
+        html.append("        var data = [tracePrice, traceSMA20, traceSMA50, traceEMA12, traceBuySignals, traceSellSignals, traceRSI, traceRSI70, traceRSI30];\n");
         html.append("        Plotly.newPlot('chart', data, layout, config);\n");
         
         html.append("    </script>\n");
