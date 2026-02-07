@@ -189,7 +189,16 @@ public class ChartGenerator {
         html.append("        var dailyChanges = [");
         for (int i = startIndex; i < data.size(); i++) {
             if (i > startIndex) html.append(", ");
-            double dailyChange = (data.get(i).getClose() - data.get(i).getOpen()) / data.get(i).getOpen() * 100;
+            double open = data.get(i).getOpen();
+            double close = data.get(i).getClose();
+            double dailyChange = 0;
+            // Only calculate if open is valid and non-zero
+            if (!Double.isNaN(open) && !Double.isNaN(close) && open > 0) {
+                dailyChange = (close - open) / open * 100;
+            } else if (!Double.isNaN(close) && open > 0) {
+                // Use previous close as reference if open is invalid
+                dailyChange = (close - open) / open * 100;
+            }
             html.append(String.format(Locale.US, "%.2f", dailyChange));
         }
         html.append("]\n\n");
@@ -318,6 +327,31 @@ public class ChartGenerator {
         html.append("            yaxis: 'y'\n");
         html.append("        };\n\n");
         
+        // Merge BUY and SELL into single signal line (chronological)
+        html.append("        var signalLine = [];\n");
+        html.append("        for (let i = 0; i < buyDates.length; i++) {\n");
+        html.append("            signalLine.push({date: buyDates[i], price: buyPrices[i], type: 'BUY'});\n");
+        html.append("        }\n");
+        html.append("        for (let i = 0; i < sellDates.length; i++) {\n");
+        html.append("            signalLine.push({date: sellDates[i], price: sellPrices[i], type: 'SELL'});\n");
+        html.append("        }\n");
+        html.append("        signalLine.sort((a, b) => new Date(a.date) - new Date(b.date));\n");
+        html.append("        var signalLineX = signalLine.map(p => p.date);\n");
+        html.append("        var signalLineY = signalLine.map(p => p.price);\n\n");
+        
+        // Signal line trace (connects all signal points)
+        html.append("        var traceSignalLine = {\n");
+        html.append("            x: signalLineX,\n");
+        html.append("            y: signalLineY,\n");
+        html.append("            type: 'scatter',\n");
+        html.append("            mode: 'lines+markers',\n");
+        html.append("            name: 'Sinyal Fiyatı (Turuncu)',\n");
+        html.append("            line: { color: '#F97316', width: 2, dash: 'solid' },\n");
+        html.append("            marker: { color: '#F97316', size: 6 },\n");
+        html.append("            hovertemplate: '<b>%{x|%Y-%m-%d %H:%M}</b><br>Sinyal Fiyatı: %{y:.2f} TL<extra></extra>',\n");
+        html.append("            yaxis: 'y'\n");
+        html.append("        };\n\n");
+        
         // BUY signals
         html.append("        var traceBuySignals = {\n");
         html.append("            x: buyDates,\n");
@@ -439,7 +473,7 @@ public class ChartGenerator {
         
         // Plot
         html.append("        // Render chart\n");
-        html.append("        var data = [tracePrice, traceSMA20, traceSMA50, traceEMA12, traceBuySignals, traceSellSignals, traceRSI, traceRSI70, traceRSI30];\n");
+        html.append("        var data = [tracePrice, traceSignalLine, traceSMA20, traceSMA50, traceEMA12, traceBuySignals, traceSellSignals, traceRSI, traceRSI70, traceRSI30];\n");
         html.append("        Plotly.newPlot('chart', data, layout, config);\n");
         
         html.append("    </script>\n");
