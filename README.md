@@ -5,7 +5,7 @@
 🔗 **https://kosemesut.github.io/bist-technical-analyzer/report.html**
 
 > 📱 Telefonundan veya herhangi bir cihazdan erişebilirsin!  
-> 🕒 Her gün sabah **09:00** Türkiye saati'nde otomatik güncellenir.
+> 🕒 **Her 15 dakikada bir otomatik güncellenir.**
 
 ---
 
