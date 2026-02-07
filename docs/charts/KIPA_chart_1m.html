@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KIPA - Teknik Analiz</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        body { margin: 0; padding: 20px; background: #f5f5f5; font-family: 'Segoe UI', Arial, sans-serif; }
+        .chart-container { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        h2 { margin: 0 0 20px 0; color: #1a1a1a; font-size: 24px; }
+    </style>
+</head>
+<body>
+    <div class="chart-container">
+        <h2>📊 KIPA - Teknik Analiz Grafiği</h2>
+        <div id="chart" style="width:100%; height:800px;"></div>
+    </div>
+    <script>
+        // Data preparation
+        var dates = []
+
+        var prices = [];
+
+        var sma20 = [];
+
+        var sma50 = [];
+
+        var ema12 = [];
+
+        var rsi = [];
+
+        // BUY/SELL signals
+        var buyDates = [], buyPrices = [], buyTexts = [];
+        var sellDates = [], sellPrices = [], sellTexts = [];
+
+        // Price chart traces
+        var tracePrice = {
+            x: dates,
+            y: prices,
+            type: 'scatter',
+            mode: 'lines',
+            name: 'Kapanış Fiyatı',
+            line: { color: '#1a1a1a', width: 2 },
+            hovertemplate: '<b>%{x|%Y-%m-%d %H:%M}</b><br>Fiyat: %{y:.2f} TL<extra></extra>',
+            yaxis: 'y'
+        };
+
+        var traceSMA20 = {
+            x: dates,
+            y: sma20,
+            type: 'scatter',
+            mode: 'lines',
+            name: 'SMA20',
+            line: { color: '#4285F4', width: 1.5, dash: 'dot' },
+            hovertemplate: '<b>%{x|%Y-%m-%d %H:%M}</b><br>SMA20: %{y:.2f} TL<extra></extra>',
+            yaxis: 'y'
+        };
+
+        var traceSMA50 = {
+            x: dates,
+            y: sma50,
+            type: 'scatter',
+            mode: 'lines',
+            name: 'SMA50',
+            line: { color: '#FBBC05', width: 1.5, dash: 'dot' },
+            hovertemplate: '<b>%{x|%Y-%m-%d %H:%M}</b><br>SMA50: %{y:.2f} TL<extra></extra>',
+            yaxis: 'y'
+        };
+
+        var traceEMA12 = {
+            x: dates,
+            y: ema12,
+            type: 'scatter',
+            mode: 'lines',
+            name: 'EMA12',
+            line: { color: '#34D399', width: 1.5, dash: 'dash' },
+            hovertemplate: '<b>%{x|%Y-%m-%d %H:%M}</b><br>EMA12: %{y:.2f} TL<extra></extra>',
+            yaxis: 'y'
+        };
+
+        var traceBuySignals = {
+            x: buyDates,
+            y: buyPrices,
+            text: buyTexts,
+            type: 'scatter',
+            mode: 'markers',
+            name: 'AL Sinyali',
+            marker: { color: '#22C55E', size: 12, symbol: 'triangle-up', line: { color: '#fff', width: 2 } },
+            hovertemplate: '<b>%{x|%Y-%m-%d %H:%M}</b><br>Fiyat: %{y:.2f} TL<br>%{text}<extra></extra>',
+            yaxis: 'y'
+        };
+
+        var traceSellSignals = {
+            x: sellDates,
+            y: sellPrices,
+            text: sellTexts,
+            type: 'scatter',
+            mode: 'markers',
+            name: 'SAT Sinyali',
+            marker: { color: '#EF4444', size: 12, symbol: 'triangle-down', line: { color: '#fff', width: 2 } },
+            hovertemplate: '<b>%{x|%Y-%m-%d %H:%M}</b><br>Fiyat: %{y:.2f} TL<br>%{text}<extra></extra>',
+            yaxis: 'y'
+        };
+
+        // RSI chart trace
+        var traceRSI = {
+            x: dates,
+            y: rsi,
+            type: 'scatter',
+            mode: 'lines',
+            name: 'RSI(14)',
+            line: { color: '#A855F7', width: 2 },
+            hovertemplate: '<b>%{x}</b><br>RSI: %{y:.1f}<extra></extra>',
+            yaxis: 'y2',
+            xaxis: 'x'
+        };
+
+        var traceRSI70 = {
+            x: dates,
+            y: Array(dates.length).fill(70),
+            type: 'scatter',
+            mode: 'lines',
+            name: 'RSI 70 (Aşırı Alım)',
+            line: { color: '#EF4444', width: 1, dash: 'dash' },
+            showlegend: false,
+            hoverinfo: 'skip',
+            yaxis: 'y2',
+            xaxis: 'x'
+        };
+
+        var traceRSI30 = {
+            x: dates,
+            y: Array(dates.length).fill(30),
+            type: 'scatter',
+            mode: 'lines',
+            name: 'RSI 30 (Aşırı Satış)',
+            line: { color: '#22C55E', width: 1, dash: 'dash' },
+            showlegend: false,
+            hoverinfo: 'skip',
+            yaxis: 'y2',
+            xaxis: 'x'
+        };
+
+        // Layout configuration
+        var layout = {
+            title: {
+                text: 'KIPA - Son 687 Günlük Teknik Analiz',
+                font: { size: 18, color: '#1a1a1a' }
+            },
+            xaxis: {
+                title: 'Tarih',
+                type: 'date',
+                tickformat: '%Y-%m',
+                nticks: 12,
+                showgrid: true,
+                gridcolor: '#e5e5e5'
+            },
+            yaxis: {
+                title: 'Fiyat (₺)',
+                domain: [0.3, 1],
+                showgrid: true,
+                gridcolor: '#e5e5e5'
+            },
+            yaxis2: {
+                title: 'RSI',
+                domain: [0, 0.25],
+                range: [0, 100],
+                showgrid: true,
+                gridcolor: '#e5e5e5'
+            },
+            hovermode: 'closest',
+            plot_bgcolor: '#fafafa',
+            paper_bgcolor: '#ffffff',
+            font: { family: 'Segoe UI, Arial', size: 12 },
+            legend: {
+                x: 0,
+                y: 1.1,
+                orientation: 'h',
+                bgcolor: 'rgba(255,255,255,0.9)',
+                bordercolor: '#e5e5e5',
+                borderwidth: 1
+            },
+            margin: { t: 100, b: 80, l: 80, r: 50 }
+        };
+
+        var config = {
+            responsive: true,
+            displayModeBar: true,
+            displaylogo: false,
+            modeBarButtonsToRemove: ['toImage', 'sendDataToCloud'],
+            locale: 'tr'
+        };
+
+        // Render chart
+        var data = [tracePrice, traceSMA20, traceSMA50, traceEMA12, traceBuySignals, traceSellSignals, traceRSI, traceRSI70, traceRSI30];
+        Plotly.newPlot('chart', data, layout, config);
+    </script>
+</body>
+</html>
