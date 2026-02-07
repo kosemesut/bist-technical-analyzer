@@ -244,12 +244,16 @@ public class SignalValidator {
         // ============================================
         quality.falseScore = Math.min(100, quality.falseScore);
         
-        if (quality.falseScore >= 60) {
-            quality.confidenceMultiplier = 0.0; // Ignore - reject
-            quality.reason = "REJECT - False Signal Olasılığı Yüksek (" + quality.falseScore + "/100)";
-        } else if (quality.falseScore >= 45) {
-            quality.confidenceMultiplier = 0.5; // Reduce by 50%
+        // ÇOK GEVŞEK THRESHOLD - Backtest asıl kararı verecek
+        if (quality.falseScore >= 90) {
+            quality.confidenceMultiplier = 0.0; // Ignore - reject (çok açık hata)
+            quality.reason = "REJECT - Kesin Hatalı Sinyal (" + quality.falseScore + "/100)";
+        } else if (quality.falseScore >= 75) {
+            quality.confidenceMultiplier = 0.7; // Azalt
             quality.reason = "CAUTION - Confidence Reduce (" + quality.falseScore + "/100)";
+        } else if (quality.falseScore >= 60) {
+            quality.confidenceMultiplier = 0.9; // Hafif azalt
+            quality.reason = "MINOR CAUTION - Slight Reduce (" + quality.falseScore + "/100)";
         } else {
             quality.confidenceMultiplier = 1.0; // Accept
             quality.reason = "ACCEPT - Green Light (" + quality.falseScore + "/100)";

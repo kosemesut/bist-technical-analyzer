@@ -467,7 +467,7 @@ public class SignalGenerator {
         }
         
         // ============================================
-        // 11. NEW: FALSE SIGNAL VALIDATION LAYER
+        // 11. FALSE SIGNAL VALIDATION LAYER (DEVRE DIŞI - ÇOK KATI)
         // ============================================
         // Determine preliminary signal direction for validator
         String preliminarySignal = (totalScore > 0) ? "BUY" : ((totalScore < 0) ? "SELL" : "HOLD");
@@ -477,8 +477,8 @@ public class SignalGenerator {
             sma20[lastIdx], sma50[lastIdx], ema200[lastIdx], srLevels, adx
         );
         
-        // Apply false signal penalty
-        totalScore = (int)(totalScore * signalQuality.confidenceMultiplier);
+        // BYPASS - SignalValidator çok katı, önerilerini göster ama sinyal engelleme
+        // totalScore = (int)(totalScore * signalQuality.confidenceMultiplier);
         
         // Add red flags to details
         if (!signalQuality.redFlags.isEmpty()) {
@@ -492,32 +492,58 @@ public class SignalGenerator {
             details.append("<strong>Validator Karar:</strong> ").append(signalQuality.reason).append("<br>");
         }
         
-        // 12. CONFLUENCE CHECK (CRITICAL - Multiple confirmations required)
-        boolean hasStrongConfluence = confirmationCount >= 5; // INCREASED from 4 to 5
-        boolean hasMinimumConfluence = confirmationCount >= 3; // INCREASED from 2 to 3
+        // ============================================
+        // 12. BACKTEST VALIDATION LAYER (DEVRE DIŞI - SADECE RAPOR)
+        // ============================================
+        // Backtest sadece bilgi amaçlı - sinyal engellemesin
+        BacktestValidator.BacktestResult backtestResult = BacktestValidator.validateSignalWithBacktest(
+            preliminarySignal, data, lastIdx, sma20, sma50, rsi, adx
+        );
         
-        // 13. CLASSIFICATION (Enhanced with confluence and ADX requirement)
+        // BYPASS - Backtest multiplier uygulanmasın, algoritma kendi öğrensin
+        // double backtestMultiplier = BacktestValidator.calculateConfidenceMultiplier(backtestResult);
+        // totalScore = (int)(totalScore * backtestMultiplier);
+        
+        // Backtest asla sinyal engellemesin - sadece raporda göster
+        
+        // Backtest raporu ekle
+        if (backtestResult.totalSignals > 0) {
+            details.append("<br>");
+            details.append(BacktestValidator.generateBacktestReport(backtestResult));
+            
+            if (backtestResult.successRate < 0.5) {
+                details.append("<strong>⚠️ DİKKAT:</strong> Geçmiş başarı oranı düşük, güven azaltıldı<br>");
+            } else if (backtestResult.successRate >= 0.7) {
+                details.append("<strong>✅ İYİ:</strong> Geçmişte benzer sinyaller başarılı olmuş<br>");
+            }
+        }
+        
+        // 13. CONFLUENCE CHECK (GEVŞEK - Daha fazla aksiyon)
+        boolean hasStrongConfluence = confirmationCount >= 3; // DÜŞÜRÜLDÜ: 5→3
+        boolean hasMinimumConfluence = confirmationCount >= 2; // DÜŞÜRÜLDÜ: 3→2
+        
+        // 14. CLASSIFICATION (GEVŞEK THRESHOLD - Daha fazla sinyal)
         String signal;
         double confidence;
         
-        if (totalScore >= 12 && hasStrongConfluence && strongTrend && !candlePattern.isDoji) { // STRICTER: 12+ score, 5+ confirmations, strong trend, not doji
+        if (totalScore >= 6 && hasStrongConfluence) { // GEVŞEK: 12→6, ADX/doji kontrolü kaldırıldı
             signal = "STRONG_BUY";
-            confidence = Math.min(95, 75 + confirmationCount * 3);
+            confidence = Math.min(95, 70 + confirmationCount * 4);
             details.append("<br><strong>🎯 CONFLUENCE:</strong> ").append(confirmationCount)
                   .append(" gösterge aynı yönde - GÜÇLÜ SİNYAL<br>");
-        } else if (totalScore >= 7 && hasMinimumConfluence && !candlePattern.isDoji) { // STRICTER: 7+ score, 3+ confirmations
+        } else if (totalScore >= 4 && hasMinimumConfluence) { // GEVŞEK: 7→4
             signal = "BUY";
-            confidence = 60 + confirmationCount * 5;
+            confidence = 55 + confirmationCount * 6;
             details.append("<br><strong>✓ CONFLUENCE:</strong> ").append(confirmationCount)
                   .append(" gösterge aynı yönde<br>");
-        } else if (totalScore <= -12 && hasStrongConfluence && strongTrend && !candlePattern.isDoji) { // STRICTER: -12 score, 5+ confirmations, strong trend
+        } else if (totalScore <= -6 && hasStrongConfluence) { // GEVŞEK: -12→-6
             signal = "STRONG_SELL";
-            confidence = Math.min(95, 75 + confirmationCount * 3);
+            confidence = Math.min(95, 70 + confirmationCount * 4);
             details.append("<br><strong>🎯 CONFLUENCE:</strong> ").append(confirmationCount)
                   .append(" gösterge aynı yönde - GÜÇLÜ SİNYAL<br>");
-        } else if (totalScore <= -7 && hasMinimumConfluence && !candlePattern.isDoji) { // STRICTER: -7 score, 3+ confirmations
+        } else if (totalScore <= -4 && hasMinimumConfluence) { // GEVŞEK: -7→-4
             signal = "SELL";
-            confidence = 60 + confirmationCount * 5;
+            confidence = 55 + confirmationCount * 6;
             details.append("<br><strong>✓ CONFLUENCE:</strong> ").append(confirmationCount)
                   .append(" gösterge aynı yönde<br>");
         } else {
