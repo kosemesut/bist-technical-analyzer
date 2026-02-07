@@ -18,76 +18,91 @@
     </div>
     <script>
         // Data preparation (daily aggregated)
-        var dates = ['2026-01-09', '2026-01-12', '2026-01-13', '2026-01-14', '2026-01-15', '2026-01-16', '2026-01-19', '2026-01-20', '2026-01-21', '2026-01-22', '2026-01-23', '2026-01-26', '2026-01-27', '2026-01-28', '2026-01-29', '2026-01-30', '2026-02-03', '2026-02-04', '2026-02-05', '2026-02-06']
+        var dates = ['2026-01-09', '2026-01-12', '2026-01-13', '2026-01-14', '2026-01-15', '2026-01-16', '2026-01-19', '2026-01-20', '2026-01-21', '2026-01-22', '2026-01-23', '2026-01-26', '2026-01-27', '2026-01-28', '2026-01-29', '2026-01-30', '2026-02-02', '2026-02-03', '2026-02-04', '2026-02-05', '2026-02-06']
 
-        var prices = [32.64, 32.50, 31.98, 31.54, 31.36, 31.90, 33.44, 33.36, 34.46, 33.82, 34.44, 34.52, 34.64, 35.56, 35.86, 36.28, 36.76, 37.68, 36.94, 36.48];
+        var prices = [32.58, 32.42, 31.94, 31.56, 31.32, 32.00, 33.44, 33.56, 34.58, 33.84, 34.42, 34.64, 34.60, 35.58, 35.88, 36.52, 36.16, 36.86, 37.12, 36.90, 36.48];
 
-        var dailyChanges = [0.00, -0.43, -1.60, -1.38, -0.57, 1.72, 4.83, -0.24, 3.30, -1.86, 1.83, 0.23, 0.35, 2.66, 0.84, 1.17, 1.32, 2.50, -1.96, -1.25];
+        var opens = [33.58, 32.72, 32.46, 32.02, 31.40, 31.48, 32.36, 33.50, 34.10, 34.88, 33.94, 34.28, 34.90, 34.48, 35.88, 35.86, 35.90, 36.30, 37.10, 36.90, 36.90];
 
-        var sma20 = [33.09, 32.84, 32.34, 31.97, 31.61, 31.62, 32.29, 33.03, 33.79, 34.10, 34.25, 34.25, 34.56, 34.82, 35.52, 35.97, 36.17, 36.58, 36.97, 36.77];
+        var highs = [33.70, 33.18, 32.54, 32.18, 32.00, 32.08, 33.60, 33.84, 34.80, 35.04, 34.68, 35.14, 35.20, 35.90, 37.14, 36.60, 36.60, 37.20, 37.88, 37.88, 36.90];
 
-        var sma50 = [32.61, 32.85, 32.80, 32.61, 32.34, 32.11, 32.15, 32.27, 32.63, 33.00, 33.47, 33.89, 34.21, 34.48, 34.83, 35.10, 35.44, 35.87, 36.25, 36.51];
+        var lows = [32.22, 32.24, 31.58, 31.44, 31.06, 31.44, 32.20, 32.72, 33.88, 33.54, 33.78, 33.84, 34.44, 33.74, 35.40, 34.92, 35.02, 35.52, 36.30, 36.20, 35.98];
 
-        var ema12 = [32.82, 32.65, 32.11, 31.79, 31.47, 31.74, 32.92, 33.31, 34.03, 34.03, 34.32, 34.33, 34.67, 35.02, 35.98, 36.02, 36.33, 36.96, 37.06, 36.49];
+        var dailyChanges = [0.00, -0.49, -1.48, -1.19, -0.76, 2.17, 4.50, 0.36, 3.04, -2.14, 1.71, 0.64, -0.12, 2.83, 0.84, 1.78, -0.99, 1.94, 0.71, -0.59, -1.14];
 
-        var rsi = [45.85, 44.41, 40.28, 34.82, 39.78, 52.87, 71.48, 60.35, 66.14, 50.79, 59.74, 57.13, 54.18, 66.58, 56.20, 60.26, 63.42, 68.54, 52.29, 48.99];
+        var closingTimes = ['14:30', '14:30', '14:30', '14:30', '14:30', '14:30', '14:30', '14:30', '14:30', '14:30', '14:30', '14:30', '14:30', '14:30', '14:30', '14:30', '14:30', '14:30', '14:30', '14:30', '15:00'];
 
-        // BUY/SELL signals on daily data
+        var signalTypes = ['', 'SELL', 'SELL', 'SELL', '', 'BUY', 'BUY', 'BUY', 'BUY', '', '', 'BUY', 'BUY', 'BUY', '', 'BUY', '', 'BUY', 'BUY', '', ''];
+
+        var signalTimes = ['', '14:30', '14:30', '14:30', '', '14:30', '14:30', '14:30', '14:30', '', '', '14:30', '14:30', '14:30', '', '14:30', '', '14:30', '14:30', '', ''];
+
+        var sma20 = [33.04, 32.75, 32.32, 31.89, 31.58, 31.61, 32.44, 33.21, 33.84, 34.16, 34.28, 34.33, 34.57, 34.92, 35.60, 36.10, 35.91, 36.15, 36.67, 37.04, 36.70];
+
+        var sma50 = [32.81, 32.93, 32.78, 32.54, 32.21, 31.96, 32.08, 32.28, 32.73, 33.19, 33.71, 34.07, 34.32, 34.53, 34.88, 35.24, 35.49, 35.81, 36.22, 36.45, 36.51];
+
+        var ema12 = [32.79, 32.61, 32.08, 31.75, 31.44, 31.78, 33.01, 33.37, 34.13, 34.03, 34.33, 34.38, 34.67, 35.11, 35.98, 36.09, 36.00, 36.41, 37.00, 37.04, 36.49];
+
+        var rsi = [44.07, 42.57, 39.17, 35.38, 39.13, 56.55, 72.95, 63.77, 67.80, 49.88, 59.21, 59.16, 52.61, 67.32, 56.09, 63.54, 54.32, 61.71, 57.14, 50.93, 48.26];
+
+        // BUY/SELL signals
         var buyDates = [], buyPrices = [], buyTexts = [];
         var sellDates = [], sellPrices = [], sellTexts = [];
         sellDates.push('2026-01-12');
-        sellPrices.push(32.50);
-        sellTexts.push('<b>2026-01-12</b>\nSaat: 13:30\nSELL');
+        sellPrices.push(32.42);
+        sellTexts.push('<b>Tarih: 2026-01-12</b><br>Açılış: 32.72 TL<br>Kapanış: 32.42 TL<br>Günlük Değişim: -0.49%<br>Kapanış Saati: 14:30<br>Sinyal: SELL<br>Sinyal Saati: 14:30');
         sellDates.push('2026-01-13');
-        sellPrices.push(31.98);
-        sellTexts.push('<b>2026-01-13</b>\nSaat: 13:30\nSELL');
+        sellPrices.push(31.94);
+        sellTexts.push('<b>Tarih: 2026-01-13</b><br>Açılış: 32.46 TL<br>Kapanış: 31.94 TL<br>Günlük Değişim: -1.48%<br>Kapanış Saati: 14:30<br>Sinyal: SELL<br>Sinyal Saati: 14:30');
         sellDates.push('2026-01-14');
-        sellPrices.push(31.54);
-        sellTexts.push('<b>2026-01-14</b>\nSaat: 13:30\nSELL');
-        sellDates.push('2026-01-15');
-        sellPrices.push(31.36);
-        sellTexts.push('<b>2026-01-15</b>\nSaat: 13:30\nSELL');
+        sellPrices.push(31.56);
+        sellTexts.push('<b>Tarih: 2026-01-14</b><br>Açılış: 32.02 TL<br>Kapanış: 31.56 TL<br>Günlük Değişim: -1.19%<br>Kapanış Saati: 14:30<br>Sinyal: SELL<br>Sinyal Saati: 14:30');
+        buyDates.push('2026-01-16');
+        buyPrices.push(32.00);
+        buyTexts.push('<b>Tarih: 2026-01-16</b><br>Açılış: 31.48 TL<br>Kapanış: 32.00 TL<br>Günlük Değişim: 2.17%<br>Kapanış Saati: 14:30<br>Sinyal: BUY<br>Sinyal Saati: 14:30');
         buyDates.push('2026-01-19');
         buyPrices.push(33.44);
-        buyTexts.push('<b>2026-01-19</b>\nSaat: 13:30\nBUY');
+        buyTexts.push('<b>Tarih: 2026-01-19</b><br>Açılış: 32.36 TL<br>Kapanış: 33.44 TL<br>Günlük Değişim: 4.50%<br>Kapanış Saati: 14:30<br>Sinyal: BUY<br>Sinyal Saati: 14:30');
         buyDates.push('2026-01-20');
-        buyPrices.push(33.36);
-        buyTexts.push('<b>2026-01-20</b>\nSaat: 13:30\nBUY');
+        buyPrices.push(33.56);
+        buyTexts.push('<b>Tarih: 2026-01-20</b><br>Açılış: 33.50 TL<br>Kapanış: 33.56 TL<br>Günlük Değişim: 0.36%<br>Kapanış Saati: 14:30<br>Sinyal: BUY<br>Sinyal Saati: 14:30');
         buyDates.push('2026-01-21');
-        buyPrices.push(34.46);
-        buyTexts.push('<b>2026-01-21</b>\nSaat: 13:30\nBUY');
+        buyPrices.push(34.58);
+        buyTexts.push('<b>Tarih: 2026-01-21</b><br>Açılış: 34.10 TL<br>Kapanış: 34.58 TL<br>Günlük Değişim: 3.04%<br>Kapanış Saati: 14:30<br>Sinyal: BUY<br>Sinyal Saati: 14:30');
         buyDates.push('2026-01-26');
-        buyPrices.push(34.52);
-        buyTexts.push('<b>2026-01-26</b>\nSaat: 13:30\nBUY');
+        buyPrices.push(34.64);
+        buyTexts.push('<b>Tarih: 2026-01-26</b><br>Açılış: 34.28 TL<br>Kapanış: 34.64 TL<br>Günlük Değişim: 0.64%<br>Kapanış Saati: 14:30<br>Sinyal: BUY<br>Sinyal Saati: 14:30');
+        buyDates.push('2026-01-27');
+        buyPrices.push(34.60);
+        buyTexts.push('<b>Tarih: 2026-01-27</b><br>Açılış: 34.90 TL<br>Kapanış: 34.60 TL<br>Günlük Değişim: -0.12%<br>Kapanış Saati: 14:30<br>Sinyal: BUY<br>Sinyal Saati: 14:30');
         buyDates.push('2026-01-28');
-        buyPrices.push(35.56);
-        buyTexts.push('<b>2026-01-28</b>\nSaat: 13:30\nBUY');
-        buyDates.push('2026-01-29');
-        buyPrices.push(35.86);
-        buyTexts.push('<b>2026-01-29</b>\nSaat: 13:30\nBUY');
+        buyPrices.push(35.58);
+        buyTexts.push('<b>Tarih: 2026-01-28</b><br>Açılış: 34.48 TL<br>Kapanış: 35.58 TL<br>Günlük Değişim: 2.83%<br>Kapanış Saati: 14:30<br>Sinyal: BUY<br>Sinyal Saati: 14:30');
         buyDates.push('2026-01-30');
-        buyPrices.push(36.28);
-        buyTexts.push('<b>2026-01-30</b>\nSaat: 13:30\nBUY');
+        buyPrices.push(36.52);
+        buyTexts.push('<b>Tarih: 2026-01-30</b><br>Açılış: 35.86 TL<br>Kapanış: 36.52 TL<br>Günlük Değişim: 1.78%<br>Kapanış Saati: 14:30<br>Sinyal: BUY<br>Sinyal Saati: 14:30');
         buyDates.push('2026-02-03');
-        buyPrices.push(36.76);
-        buyTexts.push('<b>2026-02-03</b>\nSaat: 13:30\nBUY');
+        buyPrices.push(36.86);
+        buyTexts.push('<b>Tarih: 2026-02-03</b><br>Açılış: 36.30 TL<br>Kapanış: 36.86 TL<br>Günlük Değişim: 1.94%<br>Kapanış Saati: 14:30<br>Sinyal: BUY<br>Sinyal Saati: 14:30');
         buyDates.push('2026-02-04');
-        buyPrices.push(37.68);
-        buyTexts.push('<b>2026-02-04</b>\nSaat: 13:30\nBUY');
-        buyDates.push('2026-02-05');
-        buyPrices.push(36.94);
-        buyTexts.push('<b>2026-02-05</b>\nSaat: 13:30\nBUY');
+        buyPrices.push(37.12);
+        buyTexts.push('<b>Tarih: 2026-02-04</b><br>Açılış: 37.10 TL<br>Kapanış: 37.12 TL<br>Günlük Değişim: 0.71%<br>Kapanış Saati: 14:30<br>Sinyal: BUY<br>Sinyal Saati: 14:30');
+
+        // Build custom data for hover template
+        var customdata = [];
+        for (let i = 0; i < dates.length; i++) {
+            customdata.push([opens[i], dailyChanges[i], closingTimes[i], signalTypes[i], signalTimes[i]]);
+        }
 
         // Price chart traces
         var tracePrice = {
             x: dates,
             y: prices,
-            customdata: [dailyChangeValues, closingTimes],
+            customdata: customdata,
             type: 'scatter',
             mode: 'lines',
             name: 'Kapanış Fiyatı',
             line: { color: '#1a1a1a', width: 2 },
-            hovertemplate: '<b>Tarih: %{x}</b><br>Kapanış: %{y:.2f} TL<br>Günlük Değişim: %{customdata[0]:.2f}%<br>Kapanış Saati: %{customdata[1]}<extra></extra>',
+            hovertemplate: '<b>Tarih: %{x}</b><br>Açılış: %{customdata[0]:.2f} TL<br>Kapanış: %{y:.2f} TL<br>Günlük Değişim: %{customdata[1]:.2f}%<br>Kapanış Saati: %{customdata[2]}<br>Sinyal: %{customdata[3]}<br>Sinyal Saati: %{customdata[4]}<extra></extra>',
             yaxis: 'y'
         };
 
@@ -99,6 +114,7 @@
             name: 'SMA20',
             line: { color: '#4285F4', width: 1.5, dash: 'dot' },
             hovertemplate: '<b>%{x|%Y-%m-%d %H:%M}</b><br>SMA20: %{y:.2f} TL<extra></extra>',
+            visible: false,
             yaxis: 'y'
         };
 
@@ -110,6 +126,7 @@
             name: 'SMA50',
             line: { color: '#FBBC05', width: 1.5, dash: 'dot' },
             hovertemplate: '<b>%{x|%Y-%m-%d %H:%M}</b><br>SMA50: %{y:.2f} TL<extra></extra>',
+            visible: false,
             yaxis: 'y'
         };
 
@@ -121,33 +138,7 @@
             name: 'EMA12',
             line: { color: '#34D399', width: 1.5, dash: 'dash' },
             hovertemplate: '<b>%{x|%Y-%m-%d %H:%M}</b><br>EMA12: %{y:.2f} TL<extra></extra>',
-            yaxis: 'y'
-        };
-
-        var signalLine = [];
-        for (let i = 0; i < buyDates.length; i++) {
-            signalLine.push({date: buyDates[i], price: buyPrices[i], type: 'BUY'});
-        }
-        for (let i = 0; i < sellDates.length; i++) {
-            signalLine.push({date: sellDates[i], price: sellPrices[i], type: 'SELL'});
-        }
-        signalLine.sort((a, b) => new Date(a.date) - new Date(b.date));
-        var signalLineX = signalLine.map(p => p.date);
-        var signalLineY = signalLine.map(p => p.price);
-        var signalLineText = signalLine.map(p => {
-            return '<b>' + p.date + '</b>';
-        });
-
-        var traceSignalLine = {
-            x: signalLineX,
-            y: signalLineY,
-            text: signalLineText,
-            type: 'scatter',
-            mode: 'lines+markers',
-            name: 'Sinyal Fiyatı (Turuncu)',
-            line: { color: '#F97316', width: 2, dash: 'solid' },
-            marker: { color: '#F97316', size: 6 },
-            hovertemplate: '%{text}<br>Sinyal Fiyatı: %{y:.2f} TL<extra></extra>',
+            visible: false,
             yaxis: 'y'
         };
 
@@ -159,7 +150,7 @@
             mode: 'markers',
             name: 'AL Sinyali',
             marker: { color: '#22C55E', size: 12, symbol: 'triangle-up', line: { color: '#fff', width: 2 } },
-            hovertemplate: '%{text}<br>Fiyat: %{y:.2f} TL<extra></extra>',
+            hovertemplate: '%{text}<br>Sinyal Fiyatı: %{y:.2f} TL<extra></extra>',
             yaxis: 'y'
         };
 
@@ -171,7 +162,7 @@
             mode: 'markers',
             name: 'SAT Sinyali',
             marker: { color: '#EF4444', size: 12, symbol: 'triangle-down', line: { color: '#fff', width: 2 } },
-            hovertemplate: '%{text}<br>Fiyat: %{y:.2f} TL<extra></extra>',
+            hovertemplate: '%{text}<br>Sinyal Fiyatı: %{y:.2f} TL<extra></extra>',
             yaxis: 'y'
         };
 
@@ -184,6 +175,7 @@
             name: 'RSI(14)',
             line: { color: '#A855F7', width: 2 },
             hovertemplate: '<b>%{x}</b><br>RSI: %{y:.1f}<extra></extra>',
+            visible: false,
             yaxis: 'y2',
             xaxis: 'x'
         };
@@ -195,6 +187,7 @@
             mode: 'lines',
             name: 'RSI 70 (Aşırı Alım)',
             line: { color: '#EF4444', width: 1, dash: 'dash' },
+            visible: false,
             showlegend: false,
             hoverinfo: 'skip',
             yaxis: 'y2',
@@ -208,6 +201,7 @@
             mode: 'lines',
             name: 'RSI 30 (Aşırı Satış)',
             line: { color: '#22C55E', width: 1, dash: 'dash' },
+            visible: false,
             showlegend: false,
             hoverinfo: 'skip',
             yaxis: 'y2',
@@ -217,7 +211,7 @@
         // Layout configuration
         var layout = {
             title: {
-                text: 'VAKBN - Son 514 Günlük Teknik Analiz',
+                text: 'VAKBN - Son 586 Günlük Teknik Analiz',
                 font: { size: 18, color: '#1a1a1a' }
             },
             xaxis: {
@@ -265,7 +259,7 @@
         };
 
         // Render chart
-        var data = [tracePrice, traceSignalLine, traceSMA20, traceSMA50, traceEMA12, traceBuySignals, traceSellSignals, traceRSI, traceRSI70, traceRSI30];
+        var data = [tracePrice, traceSMA20, traceSMA50, traceEMA12, traceBuySignals, traceSellSignals, traceRSI, traceRSI70, traceRSI30];
         Plotly.newPlot('chart', data, layout, config);
     </script>
 </body>
