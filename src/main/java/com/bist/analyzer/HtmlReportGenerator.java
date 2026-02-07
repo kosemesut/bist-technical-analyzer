@@ -203,6 +203,13 @@ public class HtmlReportGenerator {
         String signalText = getSignalTextTR(signal.signal);
         String stockName = getStockName(signal.symbol);
         
+        // Get latest price from allData instead of signal.price (for current market price)
+        double displayPrice = signal.price;
+        List<StockData> stockData = allData.get(signal.symbol);
+        if (stockData != null && !stockData.isEmpty()) {
+            displayPrice = stockData.get(stockData.size() - 1).getClose();
+        }
+        
         html.append("                <tr class=\"signal-").append(signalClass).append("\" data-symbol=\"")
             .append(signal.symbol).append("\" data-name=\"").append(stockName).append("\">\n");
         html.append("                    <td><strong><a href=\"#\" onclick=\"loadChart('").append(signal.symbol)
@@ -213,14 +220,14 @@ public class HtmlReportGenerator {
         html.append("                    <td style=\"max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;\" title=\"")
             .append(stockName).append("\">").append(stockName).append("</td>\n");
         
-        html.append("                    <td>").append(String.format("%.2f TL", signal.price)).append("</td>\n");
+        html.append("                    <td>").append(String.format("%.2f TL", displayPrice)).append("</td>\n");
         html.append("                    <td><span class=\"signal-badge signal-").append(signalClass).append("\">")
             .append(signalText).append("</span></td>\n");
         html.append("                    <td>").append(String.format("%.0f%%", signal.confidence)).append("</td>\n");
         
         // Price changes column
         html.append("                    <td class=\"price-changes\">");
-        appendCompactPriceChanges(html, signal.symbol, signal.price, allData);
+        appendCompactPriceChanges(html, signal.symbol, displayPrice, allData);
         html.append("</td>\n");
         
         html.append("                </tr>\n");
@@ -460,7 +467,8 @@ public class HtmlReportGenerator {
             List<StockData> data = allData.get(signal.symbol);
             if (data == null || data.isEmpty()) continue;
 
-            double currentPrice = signal.price;
+            // Get latest price from allData (current market price), not signal.price
+            double currentPrice = data.get(data.size() - 1).getClose();
             int lastIdx = data.size() - 1;
 
             html.append("                <tr>\n");
