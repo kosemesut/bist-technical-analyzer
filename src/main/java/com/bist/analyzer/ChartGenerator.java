@@ -55,6 +55,25 @@ public class ChartGenerator {
     public static void generateTechnicalChart(String symbol, List<StockData> data, 
                                             double[] sma20, double[] sma50, double[] ema12,
                                             double[] rsi, String outputPath, SignalGenerator.SignalResult currentSignal) throws IOException {
+        generateTechnicalChartInternal(symbol, data, sma20, sma50, ema12, rsi, outputPath, currentSignal, false);
+    }
+    
+    /**
+     * Generate 1-month visual chart for mobile (calculations use full data, display shows last 30 days)
+     */
+    public static void generateTechnicalChart1Month(String symbol, List<StockData> data, 
+                                            double[] sma20, double[] sma50, double[] ema12,
+                                            double[] rsi, String outputPath, SignalGenerator.SignalResult currentSignal) throws IOException {
+        generateTechnicalChartInternal(symbol, data, sma20, sma50, ema12, rsi, outputPath, currentSignal, true);
+    }
+    
+    /**
+     * Internal method - if oneMonthOnly=true, displays only last 30 days visually (calculations remain full)
+     */
+    private static void generateTechnicalChartInternal(String symbol, List<StockData> data, 
+                                            double[] sma20, double[] sma50, double[] ema12,
+                                            double[] rsi, String outputPath, SignalGenerator.SignalResult currentSignal,
+                                            boolean oneMonthOnly) throws IOException {
         if (data.isEmpty()) {
             System.out.println("No data available for technical chart generation");
             return;
@@ -66,7 +85,7 @@ public class ChartGenerator {
         if (ema12[0] == 0.0) ema12 = TechnicalIndicators.calculateEMA(data, 12);
         if (rsi[0] == 0.0) rsi = TechnicalIndicators.calculateRSI(data, 14);
         
-        // Find historical BUY/SELL signals
+        // Find historical BUY/SELL signals (use full hourly data)
         List<SignalGenerator.TradePoint> tradeSignals = SignalGenerator.findHistoricalSignals(data, sma20, sma50, ema12, rsi);
         
         // Add current signal if provided (last day's signal)
@@ -115,6 +134,18 @@ public class ChartGenerator {
             }
         }
 
+        // For mobile 1-month view: filter display data to last 30 days
+        int startIndex = 0;
+        if (oneMonthOnly && data.size() > 0) {
+            long thirtyDaysAgo = System.currentTimeMillis() - (30L * 24 * 60 * 60 * 1000);
+            for (int i = data.size() - 1; i >= 0; i--) {
+                if (data.get(i).getTimestamp() < thirtyDaysAgo) {
+                    startIndex = i + 1;
+                    break;
+                }
+            }
+        }
+        
         // Build HTML with Plotly.js
         StringBuilder html = new StringBuilder();
         
@@ -138,27 +169,27 @@ public class ChartGenerator {
         html.append("    </div>\n");
         html.append("    <script>\n");
         
-        // Prepare data arrays for Plotly
+        // Prepare data arrays for Plotly (filtered to display range)
         html.append("        // Data preparation\n");
         html.append("        var dates = [");
-        for (int i = 0; i < data.size(); i++) {
-            if (i > 0) html.append(", ");
+        for (int i = startIndex; i < data.size(); i++) {
+            if (i > startIndex) html.append(", ");
             html.append("'").append(DATE_FORMAT.format(new Date(data.get(i).getTimestamp()))).append("'");
         }
-        html.append("];\n\n");
+        html.append("]\n\n");
         
         // Price data
         html.append("        var prices = [");
-        for (int i = 0; i < data.size(); i++) {
-            if (i > 0) html.append(", ");
+        for (int i = startIndex; i < data.size(); i++) {
+            if (i > startIndex) html.append(", ");
             html.append(String.format(Locale.US, "%.2f", data.get(i).getClose()));
         }
         html.append("];\n\n");
         
         // SMA20
         html.append("        var sma20 = [");
-        for (int i = 0; i < sma20.length; i++) {
-            if (i > 0) html.append(", ");
+        for (int i = startIndex; i < sma20.length; i++) {
+            if (i > startIndex) html.append(", ");
             if (Double.isNaN(sma20[i])) {
                 html.append("null");
             } else {
@@ -169,8 +200,8 @@ public class ChartGenerator {
         
         // SMA50
         html.append("        var sma50 = [");
-        for (int i = 0; i < sma50.length; i++) {
-            if (i > 0) html.append(", ");
+        for (int i = startIndex; i < sma50.length; i++) {
+            if (i > startIndex) html.append(", ");
             if (Double.isNaN(sma50[i])) {
                 html.append("null");
             } else {
@@ -181,8 +212,8 @@ public class ChartGenerator {
         
         // EMA12
         html.append("        var ema12 = [");
-        for (int i = 0; i < ema12.length; i++) {
-            if (i > 0) html.append(", ");
+        for (int i = startIndex; i < ema12.length; i++) {
+            if (i > startIndex) html.append(", ");
             if (Double.isNaN(ema12[i])) {
                 html.append("null");
             } else {
@@ -193,8 +224,8 @@ public class ChartGenerator {
         
         // RSI
         html.append("        var rsi = [");
-        for (int i = 0; i < rsi.length; i++) {
-            if (i > 0) html.append(", ");
+        for (int i = startIndex; i < rsi.length; i++) {
+            if (i > startIndex) html.append(", ");
             if (Double.isNaN(rsi[i])) {
                 html.append("null");
             } else {
@@ -209,18 +240,26 @@ public class ChartGenerator {
         html.append("        var sellDates = [], sellPrices = [], sellTexts = [];\n");
         
         for (SignalGenerator.TradePoint signal : tradeSignals) {
+            // Skip signals outside display range
+            if (signal.index < startIndex) continue;
+            
             String date = DATE_FORMAT.format(new Date(data.get(signal.index).getTimestamp()));
             double price = signal.price;
-            String reason = signal.reason.replace("'", "\\'");
-            
+            // Sadece kısa sinyal etiketi (ör: SAT (%67) veya Güçlü AL (%82))
+            String shortLabel = "";
+            if (signal.reason.contains("Güçlü AL")) shortLabel = "Güçlü AL (%82)";
+            else if (signal.reason.contains("AL")) shortLabel = "AL (%67)";
+            else if (signal.reason.contains("Güçlü SAT")) shortLabel = "Güçlü SAT (%82)";
+            else if (signal.reason.contains("SAT")) shortLabel = "SAT (%67)";
+            else shortLabel = signal.reason.replace("'", "\\'");
             if (signal.type.equals("BUY")) {
                 html.append("        buyDates.push('").append(date).append("');\n");
                 html.append("        buyPrices.push(").append(String.format(Locale.US, "%.2f", price)).append(");\n");
-                html.append("        buyTexts.push('").append(reason).append("');\n");
+                html.append("        buyTexts.push('").append(shortLabel).append("');\n");
             } else if (signal.type.equals("SELL")) {
                 html.append("        sellDates.push('").append(date).append("');\n");
                 html.append("        sellPrices.push(").append(String.format(Locale.US, "%.2f", price)).append(");\n");
-                html.append("        sellTexts.push('").append(reason).append("');\n");
+                html.append("        sellTexts.push('").append(shortLabel).append("');\n");
             }
         }
         html.append("\n");
@@ -280,7 +319,7 @@ public class ChartGenerator {
         html.append("            mode: 'markers',\n");
         html.append("            name: 'AL Sinyali',\n");
         html.append("            marker: { color: '#22C55E', size: 12, symbol: 'triangle-up', line: { color: '#fff', width: 2 } },\n");
-        html.append("            hovertemplate: '<b>%{x|%Y-%m-%d %H:%M}</b><br>AL: %{y:.2f} TL<br>%{text}<extra></extra>',\n");
+        html.append("            hovertemplate: '<b>%{x|%Y-%m-%d %H:%M}</b><br>Fiyat: %{y:.2f} TL<br>%{text}<extra></extra>',\n");
         html.append("            yaxis: 'y'\n");
         html.append("        };\n\n");
         
@@ -293,7 +332,7 @@ public class ChartGenerator {
         html.append("            mode: 'markers',\n");
         html.append("            name: 'SAT Sinyali',\n");
         html.append("            marker: { color: '#EF4444', size: 12, symbol: 'triangle-down', line: { color: '#fff', width: 2 } },\n");
-        html.append("            hovertemplate: '<b>%{x|%Y-%m-%d %H:%M}</b><br>SAT: %{y:.2f} TL<br>%{text}<extra></extra>',\n");
+        html.append("            hovertemplate: '<b>%{x|%Y-%m-%d %H:%M}</b><br>Fiyat: %{y:.2f} TL<br>%{text}<extra></extra>',\n");
         html.append("            yaxis: 'y'\n");
         html.append("        };\n\n");
         
@@ -366,7 +405,7 @@ public class ChartGenerator {
         html.append("                showgrid: true,\n");
         html.append("                gridcolor: '#e5e5e5'\n");
         html.append("            },\n");
-        html.append("            hovermode: 'x unified',\n");
+        html.append("            hovermode: 'closest',\n");
         html.append("            plot_bgcolor: '#fafafa',\n");
         html.append("            paper_bgcolor: '#ffffff',\n");
         html.append("            font: { family: 'Segoe UI, Arial', size: 12 },\n");
@@ -400,12 +439,39 @@ public class ChartGenerator {
         html.append("</html>");
         
         // Write to file with UTF-8 encoding (fixes Turkish characters and ₺ symbol)
-        String htmlPath = outputPath.replace(".png", ".html");
+        String htmlPath = outputPath.replace(".png", oneMonthOnly ? "_1m.html" : ".html");
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(htmlPath), StandardCharsets.UTF_8)) {
             writer.write(html.toString());
         }
         
-        System.out.println("✅ İnteraktif grafik oluşturuldu: " + htmlPath);
+        if (!oneMonthOnly) {
+            System.out.println("✅ İnteraktif grafik oluşturuldu: " + htmlPath);
+        }
+    }
+    
+    /**
+     * Aggregate hourly data to daily EOD (End of Day) - last hour of each trading day
+     * Limits to max 360 days
+     */
+    private static List<StockData> aggregateToDailyEOD(List<StockData> hourlyData) {
+        if (hourlyData.isEmpty()) return hourlyData;
+        List<StockData> dailyData = new java.util.ArrayList<>();
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd");
+        String lastDate = "";
+        for (int i = hourlyData.size() - 1; i >= 0; i--) {
+            StockData data = hourlyData.get(i);
+            String currentDate = sdf.format(new java.util.Date(data.getTimestamp()));
+            if (!currentDate.equals(lastDate)) {
+                // New day found, this is the EOD for this day (since we're going backwards)
+                dailyData.add(0, data);
+                lastDate = currentDate;
+                // Limit to 360 days
+                if (dailyData.size() >= 360) {
+                    break;
+                }
+            }
+        }
+        return dailyData;
     }
     
     /**

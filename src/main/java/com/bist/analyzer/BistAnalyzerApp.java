@@ -10,6 +10,8 @@ public class BistAnalyzerApp {
     private static final String STOCK_LIST_FILE = "stock_list.txt";
     private static final String OUTPUT_DIR = "output";
     private static final String CHARTS_DIR = "output/charts";
+    
+    private static Map<String, String> failedStocks = new LinkedHashMap<>();
 
     // BIST 100 Hisseleri
     private static final String[] BIST100_STOCKS = {
@@ -78,8 +80,11 @@ public class BistAnalyzerApp {
             if (!userSignals.isEmpty() || !bist100Signals.isEmpty()) {
                 System.out.println("\n" + repeat("═", 50));
                 System.out.println("HTML rapor oluşturuluyor...");
-                HtmlReportGenerator.generateReport(userSignals, bist100Signals, allData, OUTPUT_DIR + "/report.html");
+                HtmlReportGenerator.generateReport(userSignals, bist100Signals, allData, failedStocks, OUTPUT_DIR + "/report.html");
                 System.out.println("Rapor kaydedildi: " + OUTPUT_DIR + "/report.html");
+                if (!failedStocks.isEmpty()) {
+                    System.out.println("\n⚠️  Veri alınamayan hisseler: " + failedStocks.size() + " adet (raporda detaylar var)");
+                }
             } else {
                 System.out.println("\nSinyal oluşturulamadı. Geri dönüş raporu oluşturuluyor...");
                 // Create fallback HTML if no data
@@ -129,6 +134,8 @@ public class BistAnalyzerApp {
                     List<StockData> dailyData = StockDataFetcher.fetchData(stock, "1d", "5y");
 
                     if (dailyData.isEmpty()) {
+                        String reason = "API'den günlük veri alınamadı (HTTP 404 veya veri yok)";
+                        failedStocks.put(stock, reason);
                         System.err.println("  ✗ " + stock + " için veri alınamadı");
                         continue;
                     }
@@ -144,6 +151,8 @@ public class BistAnalyzerApp {
                     List<StockData> dailyData = StockDataFetcher.fetchData(stock, "1d", "5y");
 
                     if (hourlyData.isEmpty() && dailyData.isEmpty()) {
+                        String reason = "API'den veri alınamadı (HTTP 404 veya veri yok)";
+                        failedStocks.put(stock, reason);
                         System.err.println("  ✗ " + stock + " için veri alınamadı");
                         continue;
                     }
@@ -163,12 +172,18 @@ public class BistAnalyzerApp {
                             double[] ema12 = TechnicalIndicators.calculateEMA(data, 12);
                             double[] rsi = TechnicalIndicators.calculateRSI(data, 14);
                             
+                            // Generate full data chart
                             ChartGenerator.generateTechnicalChart(stock, data, sma20, sma50, ema12, rsi, CHARTS_DIR + "/" + stock + "_chart.png", lastSignal);
+                            
+                            // Generate 1-month visual version for mobile (same calculations, last 30 days display)
+                            ChartGenerator.generateTechnicalChart1Month(stock, data, sma20, sma50, ema12, rsi, CHARTS_DIR + "/" + stock + "_chart.png", lastSignal);
                         }
                     }
                 }
 
             } catch (Exception e) {
+                String reason = "İşleme hatası: " + e.getMessage();
+                failedStocks.put(stock, reason);
                 System.err.println("  ✗ " + stock + " işlenirken hata: " + e.getMessage());
             }
         }

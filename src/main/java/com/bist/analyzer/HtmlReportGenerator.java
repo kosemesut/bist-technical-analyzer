@@ -14,6 +14,7 @@ public class HtmlReportGenerator {
     public static void generateReport(List<SignalGenerator.SignalResult> userSignals,
                                       List<SignalGenerator.SignalResult> bist100Signals,
                                       Map<String, List<StockData>> allData,
+                                      Map<String, String> failedStocks,
                                       String outputPath) throws IOException {
         
         StringBuilder html = new StringBuilder();
@@ -89,6 +90,21 @@ public class HtmlReportGenerator {
         html.append("        <p style=\"color: #666; margin-bottom: 20px;\">Tablodan bir hisse seçerek bu alanda grafiğini görüntüleyebilirsiniz.</p>\n");
         html.append("        <iframe id=\"dynamicChart\" src=\"\" style=\"width: 100%; height: 900px; border: 2px solid #667eea; border-radius: 5px;\" frameborder=\"0\" title=\"Dinamik Grafik Görüntüleyici\"></iframe>\n");
         html.append("    </section>\n");
+        
+        // Failed Stocks Section
+        if (failedStocks != null && !failedStocks.isEmpty()) {
+            html.append("    <section class=\"failed-stocks\">\n");
+            html.append("        <h3>⚠️ Veri Alınamayan Hisseler (").append(failedStocks.size()).append(" adet)</h3>\n");
+            html.append("        <ul class=\"failed-list\">\n");
+            for (Map.Entry<String, String> entry : failedStocks.entrySet()) {
+                html.append("            <li class=\"failed-item\">\n");
+                html.append("                <span class=\"failed-symbol\">").append(entry.getKey()).append(":</span>\n");
+                html.append("                <span class=\"failed-reason\">").append(entry.getValue()).append("</span>\n");
+                html.append("            </li>\n");
+            }
+            html.append("        </ul>\n");
+            html.append("    </section>\n");
+        }
         
         html.append("    <footer>\n");
         html.append("        <p><strong>Uyarı:</strong> Bu analiz sadece bilgilendirme amaçlıdır. Yatırım kararlarından önce daima kendi araştırmanızı yapınız.</p>\n");
@@ -315,11 +331,17 @@ public class HtmlReportGenerator {
             ".back-to-top {position: fixed;bottom: 30px;right: 30px;background: linear-gradient(135deg, #667eea, #764ba2);color: white;width: 50px;height: 50px;border-radius: 50%;display: flex;align-items: center;justify-content: center;text-decoration: none;font-size: 24px;box-shadow: 0 4px 12px rgba(0,0,0,0.3);transition: all 0.3s ease;z-index: 1000;} " +
             ".back-to-top:hover {transform: translateY(-5px);box-shadow: 0 6px 16px rgba(0,0,0,0.4);} " +
             "footer {margin-top: 40px;padding-top: 20px;border-top: 2px solid #eee;text-align: center;color: #666;font-size: 0.9em;} " +
+            ".failed-stocks {background: #fff3cd;padding: 20px;border-radius: 8px;margin-top: 30px;border-left: 4px solid #ff9800;} " +
+            ".failed-stocks h3 {color: #e65100;margin-bottom: 15px;} " +
+            ".failed-list {list-style: none;padding: 0;} " +
+            ".failed-item {padding: 10px;margin: 5px 0;background: white;border-radius: 5px;border-left: 3px solid #ff9800;} " +
+            ".failed-symbol {font-weight: bold;color: #d84315;} " +
+            ".failed-reason {color: #666;font-size: 0.9em;margin-left: 10px;} " +
             ".modal {display: none;position: fixed;z-index: 2000;left: 0;top: 0;width: 100%;height: 100%;background-color: rgba(0,0,0,0.9);} " +
             ".modal-content {margin: auto;display: block;max-width: 90%;max-height: 90%;margin-top: 50px;} " +
             ".modal-close {position: absolute;top: 30px;right: 45px;color: #f1f1f1;font-size: 50px;font-weight: bold;cursor: pointer;transition: 0.3s;} " +
             ".modal-close:hover {color: #bbb;} " +
-            "@media (max-width: 768px) {.container {padding: 15px;} h1 {font-size: 1.8em;} .charts {grid-template-columns: 1fr;} .chart-frame {height: 600px;} .signals-table {font-size: 0.9em;} .signals-table td, .signals-table th {padding: 8px;} .back-to-top {bottom: 20px;right: 20px;width: 45px;height: 45px;font-size: 20px;}} ";
+            "@media (max-width: 768px) {.container {padding: 10px;} h1 {font-size: 1.6em;} .charts {grid-template-columns: 1fr;} .chart-frame {height: 500px;} .signals-table {font-size: 0.85em;overflow-x: auto;display: block;} .signals-table td, .signals-table th {padding: 6px 4px;} .back-to-top {display: none;} .summary-cards {grid-template-columns: 1fr;gap: 10px;} .stock-info {grid-template-columns: 1fr;} .legend-items {grid-template-columns: 1fr;}} ";
     }
 
     private static String getJavaScript() {
@@ -365,9 +387,11 @@ public class HtmlReportGenerator {
             "function loadChart(symbol) {" +
             "    var chartViewer = document.getElementById('dynamicChartViewer');" +
             "    if (!chartViewer) return;" +
+            "    var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);" +
+            "    var chartSuffix = isMobile ? '_1m' : '';" +
             "    var iframe = chartViewer.querySelector('iframe');" +
             "    if (iframe) {" +
-            "        iframe.src = 'charts/' + symbol + '_chart.html';" +
+            "        iframe.src = 'charts/' + symbol + '_chart' + chartSuffix + '.html';" +
             "        chartViewer.style.display = 'block';" +
             "        chartViewer.scrollIntoView({behavior: 'smooth'});" +
             "    }" +
