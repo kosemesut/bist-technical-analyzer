@@ -161,24 +161,25 @@ public class HtmlReportGenerator {
         
         // Add XU100 first if exists
         if (xu100Signal != null) {
-            addSignalRow(html, xu100Signal);
+            addSignalRow(html, xu100Signal, allData);
         }
         
         // Add priority signals (--- öncesi)
         for (SignalGenerator.SignalResult signal : prioritySignals) {
-            addSignalRow(html, signal);
+            addSignalRow(html, signal, allData);
         }
         
         // Add BIST100 signals (--- sonrası)
         for (SignalGenerator.SignalResult signal : bist100OnlySignals) {
-            addSignalRow(html, signal);
+            addSignalRow(html, signal, allData);
         }
         
         html.append("            </tbody>\n");
         html.append("        </table>\n");
     }
     
-    private static void addSignalRow(StringBuilder html, SignalGenerator.SignalResult signal) {
+    private static void addSignalRow(StringBuilder html, SignalGenerator.SignalResult signal,
+                                     Map<String, List<StockData>> allData) {
         String signalClass = signal.signal.toLowerCase().replace("_", "-");
         String signalText = getSignalTextTR(signal.signal);
         String stockName = getStockName(signal.symbol);
@@ -188,11 +189,21 @@ public class HtmlReportGenerator {
         html.append("                    <td><strong><a href=\"#\" onclick=\"loadChart('").append(signal.symbol)
             .append("'); return false;\" class=\"stock-link\" style=\"cursor: pointer;\">")
             .append(signal.symbol).append("</a></strong></td>\n");
-        html.append("                    <td>").append(stockName).append("</td>\n");
+        
+        // Stock name column with truncation and hover tooltip
+        html.append("                    <td style=\"max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;\" title=\"")
+            .append(stockName).append("\">").append(stockName).append("</td>\n");
+        
         html.append("                    <td>").append(String.format("%.2f TL", signal.price)).append("</td>\n");
         html.append("                    <td><span class=\"signal-badge signal-").append(signalClass).append("\">")
             .append(signalText).append("</span></td>\n");
         html.append("                    <td>").append(String.format("%.0f%%", signal.confidence)).append("</td>\n");
+        
+        // Price changes column
+        html.append("                    <td class=\"price-changes\">");
+        appendCompactPriceChanges(html, signal.symbol, signal.price, allData);
+        html.append("</td>\n");
+        
         html.append("                </tr>\n");
     }
 
