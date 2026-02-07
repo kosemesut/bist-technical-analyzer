@@ -46,16 +46,22 @@ jobs:
         echo "Report dosyası var mı?"
         test -f output/report.html && echo "✅ report.html oluşturuldu" || echo "❌ report.html bulunamadı"
     
+    - name: 📄 Dosyaları docs klasörüne kopyala (GitHub Pages için)
+      run: |
+        mkdir -p docs
+        cp output/report.html docs/ || true
+        cp -r output/charts docs/ || true
+    
     - name: 🌐 GitHub Pages'e deploy et
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./output
+        publish_dir: ./docs
         publish_branch: gh-pages
         force_orphan: true
         user_name: 'github-actions[bot]'
         user_email: 'github-actions[bot]@users.noreply.github.com'
-        commit_message: 'Güncel BIST analiz raporu - ${{ github.event.head_commit.message }}'
+        commit_message: 'Güncel BIST analiz raporu'
     
     - name: 🎉 Başarılı
       run: |
