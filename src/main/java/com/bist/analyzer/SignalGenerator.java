@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.HashMap;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.TimeZone;
 
 public class SignalGenerator {
     
@@ -818,12 +819,14 @@ public class SignalGenerator {
      * Get the index of the last data point of the day (end-of-day / last hour)
      * For daily data: returns last index
      * For hourly data: returns index of last hour of trading day
+     * Uses Istanbul timezone (Europe/Istanbul) for consistent date reference
      */
     private static int getEODIndex(List<StockData> data) {
         if (data.isEmpty()) return 0;
         
         long lastTimestamp = data.get(data.size() - 1).getTimestamp();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        sdf.setTimeZone(TimeZone.getTimeZone("Europe/Istanbul"));
         String lastDate = sdf.format(new Date(lastTimestamp));
         
         // For daily data, just return the last index
