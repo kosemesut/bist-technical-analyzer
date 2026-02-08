@@ -77,11 +77,14 @@ public class ChartGenerator {
     /**
      * Aggregate hourly data to daily OHLC - ensures ONE point per day
      * Properly maintains: open=first hour, high=max, low=min, close=last hour, volume=sum
+     * Uses Istanbul timezone (Europe/Istanbul) for consistent date reference
      */
     private static Map<String, DailyData> aggregateToDailyOHLC(List<StockData> hourlyData) {
         Map<String, DailyData> dailyMap = new LinkedHashMap<>();
         SimpleDateFormat dateOnlyFormat = new SimpleDateFormat("yyyy-MM-dd");
+        dateOnlyFormat.setTimeZone(TimeZone.getTimeZone("Europe/Istanbul"));
         SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm");
+        timeFormat.setTimeZone(TimeZone.getTimeZone("Europe/Istanbul"));
         
         for (StockData hourly : hourlyData) {
             String dateStr = dateOnlyFormat.format(new Date(hourly.getTimestamp()));
@@ -194,6 +197,7 @@ public class ChartGenerator {
                 StockData lastData = data.get(lastSignal.index);
                 
                 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                sdf.setTimeZone(TimeZone.getTimeZone("Europe/Istanbul"));
                 String lastSignalDate = sdf.format(new Date(lastData.getTimestamp()));
                 String currentDate = sdf.format(new Date(currentData.getTimestamp()));
                 
