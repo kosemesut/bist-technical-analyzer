@@ -6,10 +6,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.ZoneId;
 import java.util.*;
+import java.util.TimeZone;
 
 public class HtmlReportGenerator {
 
@@ -564,19 +566,21 @@ public class HtmlReportGenerator {
 
     /**
      * Extract daily closing prices from stock data
-     * Groups by date and returns the last (closing) price of each day
+     * Uses same aggregation logic as ChartGenerator to ensure consistency
+     * Works with both hourly and daily data
      */
     private static List<Double> extractDailyClosingPrices(List<StockData> data) {
         if (data.isEmpty()) return new ArrayList<>();
         
+        // Use LinkedHashMap to preserve daily aggregation order
         Map<String, Double> dayClosePrices = new LinkedHashMap<>();
-        java.time.format.DateTimeFormatter dateFormatter = java.time.format.DateTimeFormatter
-            .ofPattern("yyyy-MM-dd")
-            .withZone(java.time.ZoneId.of("Europe/Istanbul"));
+        SimpleDateFormat dateOnlyFormat = new SimpleDateFormat("yyyy-MM-dd");
+        dateOnlyFormat.setTimeZone(TimeZone.getTimeZone("Europe/Istanbul"));
         
         for (StockData point : data) {
-            String dateKey = dateFormatter.format(java.time.Instant.ofEpochMilli(point.getTimestamp()));
-            dayClosePrices.put(dateKey, point.getClose()); // Last price of day overwrites previous
+            String dateKey = dateOnlyFormat.format(new Date(point.getTimestamp()));
+            // Always update to get the LAST price of each day in iteration order
+            dayClosePrices.put(dateKey, point.getClose());
         }
         
         return new ArrayList<>(dayClosePrices.values());
@@ -585,18 +589,18 @@ public class HtmlReportGenerator {
     /**
      * Extract daily trading volumes from stock data
      * Groups by date and returns the sum of volumes for each day
+     * Uses same timezone handling as ChartGenerator
      */
     private static List<Long> extractDailyVolumes(List<StockData> data) {
         if (data.isEmpty()) return new ArrayList<>();
         
         Map<String, Long> dayVolumes = new LinkedHashMap<>();
-        java.time.format.DateTimeFormatter dateFormatter = java.time.format.DateTimeFormatter
-            .ofPattern("yyyy-MM-dd")
-            .withZone(java.time.ZoneId.of("Europe/Istanbul"));
+        SimpleDateFormat dateOnlyFormat = new SimpleDateFormat("yyyy-MM-dd");
+        dateOnlyFormat.setTimeZone(TimeZone.getTimeZone("Europe/Istanbul"));
         
         for (StockData point : data) {
-            String dateKey = dateFormatter.format(java.time.Instant.ofEpochMilli(point.getTimestamp()));
-            dayVolumes.put(dateKey, dayVolumes.getOrDefault(dateKey, 0L) + point.getVolume()); // Sum volumes
+            String dateKey = dateOnlyFormat.format(new Date(point.getTimestamp()));
+            dayVolumes.put(dateKey, dayVolumes.getOrDefault(dateKey, 0L) + point.getVolume());
         }
         
         return new ArrayList<>(dayVolumes.values());
