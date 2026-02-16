@@ -16,7 +16,7 @@
 document.addEventListener('DOMContentLoaded', function() {    var modal = document.getElementById('imageModal');    var modalImg = document.getElementById('modalImage');    var closeBtn = document.getElementsByClassName('modal-close')[0];    var imgs = document.getElementsByClassName('chart-img');    for (var i = 0; i < imgs.length; i++) {        imgs[i].onclick = function() {            modal.style.display = 'block';            modalImg.src = this.src;        };    }    if(closeBtn) {        closeBtn.onclick = function() {            modal.style.display = 'none';        };    }    if(modal) {        modal.onclick = function(e) {            if (e.target === modal) {                modal.style.display = 'none';            }        };    }    setupSearch();});function setupSearch() {    var searchBox = document.getElementById('stockSearch');    var tableBody = document.getElementById('signalsTableBody');    if (!searchBox || !tableBody) return;    searchBox.addEventListener('keyup', function() {        var query = searchBox.value.toLowerCase();        var rows = tableBody.querySelectorAll('tr');        rows.forEach(function(row) {            var symbol = row.cells[0] ? row.cells[0].textContent.toLowerCase() : '';            var name = row.cells[1] ? row.cells[1].textContent.toLowerCase() : '';            row.style.display = (symbol.includes(query) || name.includes(query)) ? '' : 'none';        });    });}function loadChart(symbol) {    var chartViewer = document.getElementById('dynamicChartViewer');    if (!chartViewer) return;    var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);    var chartSuffix = isMobile ? '_1m' : '';    var iframe = chartViewer.querySelector('iframe');    if (iframe) {        iframe.src = 'charts/' + symbol + '_chart' + chartSuffix + '.html';        chartViewer.style.display = 'block';        chartViewer.scrollIntoView({behavior: 'smooth'});    }}</script>
 <div class="container" id="top">
     <h1>BİST Teknik Analiz Raporu</h1>
-    <div class="timestamp">Oluşturulma Tarihi: 2026-02-16 02:59:49 TRT</div>
+    <div class="timestamp">Oluşturulma Tarihi: 2026-02-16 05:56:17 TRT</div>
     <section class="summary">
         <h2>📋 İstenen Hisselerin Sinyalleri</h2>
         <div style="margin-bottom: 20px;">
@@ -83,14 +83,6 @@ document.addEventListener('DOMContentLoaded', function() {    var modal = docume
                     <td>94%</td>
                     <td class="price-changes"><span class="price-change-item" title="Günlük Hacim: 405,433,865"><span class="price-change-label">1g:</span> <span class="positive">▲14.9%</span></span> <span class="price-change-item" title="Günlük Hacim: 405,433,865"><span class="price-change-label">5g:</span> <span class="positive">▲25.6%</span></span> <span class="price-change-item" title="Günlük Hacim: 405,433,865"><span class="price-change-label">1a:</span> <span class="positive">▲27.4%</span></span> <span class="price-change-item" title="Günlük Hacim: 405,433,865"><span class="price-change-label">3a:</span> <span class="negative">▼17.1%</span></span> </td>
                 </tr>
-                <tr class="signal-strong-buy" data-symbol="THYAO" data-name="Türk Hava Yolları A.O.">
-                    <td><strong><a href="#" onclick="loadChart('THYAO'); return false;" class="stock-link" style="cursor: pointer;">THYAO</a></strong></td>
-                    <td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Türk Hava Yolları A.O.">Türk Hava Yolları A.O.</td>
-                    <td>347.75 TL</td>
-                    <td><span class="signal-badge signal-strong-buy">GÜÇLÜ AL</span></td>
-                    <td>94%</td>
-                    <td class="price-changes"><span class="price-change-item" title="Günlük Hacim: 77,379,517"><span class="price-change-label">1g:</span> <span class="positive">▲2.7%</span></span> <span class="price-change-item" title="Günlük Hacim: 77,379,517"><span class="price-change-label">5g:</span> <span class="positive">▲9.3%</span></span> <span class="price-change-item" title="Günlük Hacim: 77,379,517"><span class="price-change-label">1a:</span> <span class="positive">▲21.5%</span></span> <span class="price-change-item" title="Günlük Hacim: 77,379,517"><span class="price-change-label">3a:</span> <span class="positive">▲25.3%</span></span> </td>
-                </tr>
                 <tr class="signal-strong-buy" data-symbol="TUREX" data-name="Turex Turizm A.Ş.">
                     <td><strong><a href="#" onclick="loadChart('TUREX'); return false;" class="stock-link" style="cursor: pointer;">TUREX</a></strong></td>
                     <td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Turex Turizm A.Ş.">Turex Turizm A.Ş.</td>
@@ -147,14 +139,6 @@ document.addEventListener('DOMContentLoaded', function() {    var modal = docume
                     <td>90%</td>
                     <td class="price-changes"><span class="price-change-item" title="Günlük Hacim: 1,196,443"><span class="price-change-label">1g:</span> <span class="positive">▲2.8%</span></span> <span class="price-change-item" title="Günlük Hacim: 1,196,443"><span class="price-change-label">5g:</span> <span class="positive">▲7.2%</span></span> <span class="price-change-item" title="Günlük Hacim: 1,196,443"><span class="price-change-label">1a:</span> <span class="negative">▼11.5%</span></span> <span class="price-change-item" title="Günlük Hacim: 1,196,443"><span class="price-change-label">3a:</span> <span class="positive">▲0.8%</span></span> </td>
                 </tr>
-                <tr class="signal-strong-buy" data-symbol="SASA" data-name="Sasa Polyester A.Ş.">
-                    <td><strong><a href="#" onclick="loadChart('SASA'); return false;" class="stock-link" style="cursor: pointer;">SASA</a></strong></td>
-                    <td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Sasa Polyester A.Ş.">Sasa Polyester A.Ş.</td>
-                    <td>2.70 TL</td>
-                    <td><span class="signal-badge signal-strong-buy">GÜÇLÜ AL</span></td>
-                    <td>90%</td>
-                    <td class="price-changes"><span class="price-change-item" title="Günlük Hacim: 2,687,359,925"><span class="price-change-label">1g:</span> <span class="positive">▲0.4%</span></span> <span class="price-change-item" title="Günlük Hacim: 2,687,359,925"><span class="price-change-label">5g:</span> <span class="positive">▲13.0%</span></span> <span class="price-change-item" title="Günlük Hacim: 2,687,359,925"><span class="price-change-label">1a:</span> <span class="positive">▲15.4%</span></span> <span class="price-change-item" title="Günlük Hacim: 2,687,359,925"><span class="price-change-label">3a:</span> <span class="negative">▼8.2%</span></span> </td>
-                </tr>
                 <tr class="signal-strong-buy" data-symbol="AKSA" data-name="Aksa Akrilik Kimya A.Ş.">
                     <td><strong><a href="#" onclick="loadChart('AKSA'); return false;" class="stock-link" style="cursor: pointer;">AKSA</a></strong></td>
                     <td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Aksa Akrilik Kimya A.Ş.">Aksa Akrilik Kimya A.Ş.</td>
@@ -194,6 +178,14 @@ document.addEventListener('DOMContentLoaded', function() {    var modal = docume
                     <td><span class="signal-badge signal-strong-buy">GÜÇLÜ AL</span></td>
                     <td>86%</td>
                     <td class="price-changes"><span class="price-change-item" title="Günlük Hacim: 11,610,788"><span class="price-change-label">1g:</span> <span class="negative">▼0.5%</span></span> <span class="price-change-item" title="Günlük Hacim: 11,610,788"><span class="price-change-label">5g:</span> <span class="positive">▲7.6%</span></span> <span class="price-change-item" title="Günlük Hacim: 11,610,788"><span class="price-change-label">1a:</span> <span class="positive">▲8.3%</span></span> <span class="price-change-item" title="Günlük Hacim: 11,610,788"><span class="price-change-label">3a:</span> <span class="positive">▲43.9%</span></span> </td>
+                </tr>
+                <tr class="signal-strong-buy" data-symbol="GUBRF" data-name="Gübre Fabrikaları A.Ş.">
+                    <td><strong><a href="#" onclick="loadChart('GUBRF'); return false;" class="stock-link" style="cursor: pointer;">GUBRF</a></strong></td>
+                    <td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Gübre Fabrikaları A.Ş.">Gübre Fabrikaları A.Ş.</td>
+                    <td>540.50 TL</td>
+                    <td><span class="signal-badge signal-strong-buy">GÜÇLÜ AL</span></td>
+                    <td>86%</td>
+                    <td class="price-changes"><span class="price-change-item" title="Günlük Hacim: 2,286,998"><span class="price-change-label">1g:</span> <span class="negative">▼2.4%</span></span> <span class="price-change-item" title="Günlük Hacim: 2,286,998"><span class="price-change-label">5g:</span> <span class="positive">▲4.5%</span></span> <span class="price-change-item" title="Günlük Hacim: 2,286,998"><span class="price-change-label">1a:</span> <span class="positive">▲48.1%</span></span> <span class="price-change-item" title="Günlük Hacim: 2,286,998"><span class="price-change-label">3a:</span> <span class="positive">▲60.4%</span></span> </td>
                 </tr>
                 <tr class="signal-strong-buy" data-symbol="HALKB" data-name="Halkbank A.Ş.">
                     <td><strong><a href="#" onclick="loadChart('HALKB'); return false;" class="stock-link" style="cursor: pointer;">HALKB</a></strong></td>
@@ -235,21 +227,29 @@ document.addEventListener('DOMContentLoaded', function() {    var modal = docume
                     <td>86%</td>
                     <td class="price-changes"><span class="price-change-item" title="Günlük Hacim: 44,166,867"><span class="price-change-label">1g:</span> <span class="positive">▲1.2%</span></span> <span class="price-change-item" title="Günlük Hacim: 44,166,867"><span class="price-change-label">5g:</span> <span class="positive">▲9.0%</span></span> <span class="price-change-item" title="Günlük Hacim: 44,166,867"><span class="price-change-label">1a:</span> <span class="positive">▲18.8%</span></span> <span class="price-change-item" title="Günlük Hacim: 44,166,867"><span class="price-change-label">3a:</span> <span class="positive">▲43.3%</span></span> </td>
                 </tr>
+                <tr class="signal-strong-buy" data-symbol="SASA" data-name="Sasa Polyester A.Ş.">
+                    <td><strong><a href="#" onclick="loadChart('SASA'); return false;" class="stock-link" style="cursor: pointer;">SASA</a></strong></td>
+                    <td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Sasa Polyester A.Ş.">Sasa Polyester A.Ş.</td>
+                    <td>2.70 TL</td>
+                    <td><span class="signal-badge signal-strong-buy">GÜÇLÜ AL</span></td>
+                    <td>86%</td>
+                    <td class="price-changes"><span class="price-change-item" title="Günlük Hacim: 2,270,736,058"><span class="price-change-label">1g:</span> <span class="negative">▼0.4%</span></span> <span class="price-change-item" title="Günlük Hacim: 2,270,736,058"><span class="price-change-label">5g:</span> <span class="positive">▲11.6%</span></span> <span class="price-change-item" title="Günlük Hacim: 2,270,736,058"><span class="price-change-label">1a:</span> <span class="positive">▲13.0%</span></span> <span class="price-change-item" title="Günlük Hacim: 2,270,736,058"><span class="price-change-label">3a:</span> <span class="negative">▼10.6%</span></span> </td>
+                </tr>
                 <tr class="signal-strong-buy" data-symbol="SISE" data-name="Şişecam A.Ş.">
                     <td><strong><a href="#" onclick="loadChart('SISE'); return false;" class="stock-link" style="cursor: pointer;">SISE</a></strong></td>
                     <td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Şişecam A.Ş.">Şişecam A.Ş.</td>
                     <td>49.54 TL</td>
                     <td><span class="signal-badge signal-strong-buy">GÜÇLÜ AL</span></td>
                     <td>86%</td>
-                    <td class="price-changes"><span class="price-change-item" title="Günlük Hacim: 86,228,534"><span class="price-change-label">1g:</span> <span class="positive">▲0.7%</span></span> <span class="price-change-item" title="Günlük Hacim: 86,228,534"><span class="price-change-label">5g:</span> <span class="positive">▲5.4%</span></span> <span class="price-change-item" title="Günlük Hacim: 86,228,534"><span class="price-change-label">1a:</span> <span class="positive">▲28.3%</span></span> <span class="price-change-item" title="Günlük Hacim: 86,228,534"><span class="price-change-label">3a:</span> <span class="positive">▲37.4%</span></span> </td>
+                    <td class="price-changes"><span class="price-change-item" title="Günlük Hacim: 69,520,812"><span class="price-change-label">1g:</span> <span class="positive">▲0.9%</span></span> <span class="price-change-item" title="Günlük Hacim: 69,520,812"><span class="price-change-label">5g:</span> <span class="positive">▲4.6%</span></span> <span class="price-change-item" title="Günlük Hacim: 69,520,812"><span class="price-change-label">1a:</span> <span class="positive">▲24.9%</span></span> <span class="price-change-item" title="Günlük Hacim: 69,520,812"><span class="price-change-label">3a:</span> <span class="positive">▲37.2%</span></span> </td>
                 </tr>
-                <tr class="signal-strong-buy" data-symbol="TABGD" data-name="TAB Gıda A.Ş.">
-                    <td><strong><a href="#" onclick="loadChart('TABGD'); return false;" class="stock-link" style="cursor: pointer;">TABGD</a></strong></td>
-                    <td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="TAB Gıda A.Ş.">TAB Gıda A.Ş.</td>
-                    <td>271.25 TL</td>
+                <tr class="signal-strong-buy" data-symbol="THYAO" data-name="Türk Hava Yolları A.O.">
+                    <td><strong><a href="#" onclick="loadChart('THYAO'); return false;" class="stock-link" style="cursor: pointer;">THYAO</a></strong></td>
+                    <td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Türk Hava Yolları A.O.">Türk Hava Yolları A.O.</td>
+                    <td>347.75 TL</td>
                     <td><span class="signal-badge signal-strong-buy">GÜÇLÜ AL</span></td>
                     <td>86%</td>
-                    <td class="price-changes"><span class="price-change-item" title="Günlük Hacim: 772,986"><span class="price-change-label">1g:</span> <span class="positive">▲1.1%</span></span> <span class="price-change-item" title="Günlük Hacim: 772,986"><span class="price-change-label">5g:</span> <span class="positive">▲7.9%</span></span> <span class="price-change-item" title="Günlük Hacim: 772,986"><span class="price-change-label">1a:</span> <span class="positive">▲12.2%</span></span> <span class="price-change-item" title="Günlük Hacim: 772,986"><span class="price-change-label">3a:</span> <span class="positive">▲15.9%</span></span> </td>
+                    <td class="price-changes"><span class="price-change-item" title="Günlük Hacim: 53,333,183"><span class="price-change-label">1g:</span> <span class="positive">▲3.2%</span></span> <span class="price-change-item" title="Günlük Hacim: 53,333,183"><span class="price-change-label">5g:</span> <span class="positive">▲8.0%</span></span> <span class="price-change-item" title="Günlük Hacim: 53,333,183"><span class="price-change-label">1a:</span> <span class="positive">▲19.5%</span></span> <span class="price-change-item" title="Günlük Hacim: 53,333,183"><span class="price-change-label">3a:</span> <span class="positive">▲26.0%</span></span> </td>
                 </tr>
                 <tr class="signal-strong-buy" data-symbol="TOASO" data-name="Tofaş Oto. Fab. A.Ş.">
                     <td><strong><a href="#" onclick="loadChart('TOASO'); return false;" class="stock-link" style="cursor: pointer;">TOASO</a></strong></td>
@@ -258,14 +258,6 @@ document.addEventListener('DOMContentLoaded', function() {    var modal = docume
                     <td><span class="signal-badge signal-strong-buy">GÜÇLÜ AL</span></td>
                     <td>86%</td>
                     <td class="price-changes"><span class="price-change-item" title="Günlük Hacim: 4,065,574"><span class="price-change-label">1g:</span> <span class="positive">▲3.0%</span></span> <span class="price-change-item" title="Günlük Hacim: 4,065,574"><span class="price-change-label">5g:</span> <span class="positive">▲7.2%</span></span> <span class="price-change-item" title="Günlük Hacim: 4,065,574"><span class="price-change-label">1a:</span> <span class="positive">▲19.0%</span></span> <span class="price-change-item" title="Günlük Hacim: 4,065,574"><span class="price-change-label">3a:</span> <span class="positive">▲46.3%</span></span> </td>
-                </tr>
-                <tr class="signal-strong-buy" data-symbol="TRALT" data-name="Türker Proje GYO A.Ş.">
-                    <td><strong><a href="#" onclick="loadChart('TRALT'); return false;" class="stock-link" style="cursor: pointer;">TRALT</a></strong></td>
-                    <td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Türker Proje GYO A.Ş.">Türker Proje GYO A.Ş.</td>
-                    <td>52.65 TL</td>
-                    <td><span class="signal-badge signal-strong-buy">GÜÇLÜ AL</span></td>
-                    <td>86%</td>
-                    <td class="price-changes"><span class="price-change-item" title="Günlük Hacim: 105,522,564"><span class="price-change-label">1g:</span> <span class="negative">▼1.0%</span></span> <span class="price-change-item" title="Günlük Hacim: 105,522,564"><span class="price-change-label">5g:</span> <span class="positive">▲16.2%</span></span> <span class="price-change-item" title="Günlük Hacim: 105,522,564"><span class="price-change-label">1a:</span> <span class="positive">▲15.9%</span></span> <span class="price-change-item" title="Günlük Hacim: 105,522,564"><span class="price-change-label">3a:</span> <span class="positive">▲39.6%</span></span> </td>
                 </tr>
                 <tr class="signal-strong-buy" data-symbol="TUPRS" data-name="Tüpraş A.Ş.">
                     <td><strong><a href="#" onclick="loadChart('TUPRS'); return false;" class="stock-link" style="cursor: pointer;">TUPRS</a></strong></td>
@@ -419,13 +411,29 @@ document.addEventListener('DOMContentLoaded', function() {    var modal = docume
                     <td>82%</td>
                     <td class="price-changes"><span class="price-change-item" title="Günlük Hacim: 72,713,833"><span class="price-change-label">1g:</span> <span class="positive">▲5.7%</span></span> <span class="price-change-item" title="Günlük Hacim: 72,713,833"><span class="price-change-label">5g:</span> <span class="positive">▲21.7%</span></span> <span class="price-change-item" title="Günlük Hacim: 72,713,833"><span class="price-change-label">1a:</span> <span class="positive">▲31.9%</span></span> <span class="price-change-item" title="Günlük Hacim: 72,713,833"><span class="price-change-label">3a:</span> <span class="positive">▲35.9%</span></span> </td>
                 </tr>
+                <tr class="signal-strong-buy" data-symbol="TABGD" data-name="TAB Gıda A.Ş.">
+                    <td><strong><a href="#" onclick="loadChart('TABGD'); return false;" class="stock-link" style="cursor: pointer;">TABGD</a></strong></td>
+                    <td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="TAB Gıda A.Ş.">TAB Gıda A.Ş.</td>
+                    <td>271.25 TL</td>
+                    <td><span class="signal-badge signal-strong-buy">GÜÇLÜ AL</span></td>
+                    <td>82%</td>
+                    <td class="price-changes"><span class="price-change-item" title="Günlük Hacim: 679,703"><span class="price-change-label">1g:</span> <span class="positive">▲0.9%</span></span> <span class="price-change-item" title="Günlük Hacim: 679,703"><span class="price-change-label">5g:</span> <span class="positive">▲7.2%</span></span> <span class="price-change-item" title="Günlük Hacim: 679,703"><span class="price-change-label">1a:</span> <span class="positive">▲6.3%</span></span> <span class="price-change-item" title="Günlük Hacim: 679,703"><span class="price-change-label">3a:</span> <span class="positive">▲14.0%</span></span> </td>
+                </tr>
                 <tr class="signal-strong-buy" data-symbol="TCELL" data-name="Turkcell A.Ş.">
                     <td><strong><a href="#" onclick="loadChart('TCELL'); return false;" class="stock-link" style="cursor: pointer;">TCELL</a></strong></td>
                     <td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Turkcell A.Ş.">Turkcell A.Ş.</td>
                     <td>125.30 TL</td>
                     <td><span class="signal-badge signal-strong-buy">GÜÇLÜ AL</span></td>
                     <td>82%</td>
-                    <td class="price-changes"><span class="price-change-item" title="Günlük Hacim: 27,902,143"><span class="price-change-label">1g:</span> <span class="positive">▲1.0%</span></span> <span class="price-change-item" title="Günlük Hacim: 27,902,143"><span class="price-change-label">5g:</span> <span class="positive">▲10.0%</span></span> <span class="price-change-item" title="Günlük Hacim: 27,902,143"><span class="price-change-label">1a:</span> <span class="positive">▲20.7%</span></span> <span class="price-change-item" title="Günlük Hacim: 27,902,143"><span class="price-change-label">3a:</span> <span class="positive">▲32.3%</span></span> </td>
+                    <td class="price-changes"><span class="price-change-item" title="Günlük Hacim: 20,791,522"><span class="price-change-label">1g:</span> <span class="positive">▲1.1%</span></span> <span class="price-change-item" title="Günlük Hacim: 20,791,522"><span class="price-change-label">5g:</span> <span class="positive">▲9.6%</span></span> <span class="price-change-item" title="Günlük Hacim: 20,791,522"><span class="price-change-label">1a:</span> <span class="positive">▲18.7%</span></span> <span class="price-change-item" title="Günlük Hacim: 20,791,522"><span class="price-change-label">3a:</span> <span class="positive">▲29.4%</span></span> </td>
+                </tr>
+                <tr class="signal-strong-buy" data-symbol="TRALT" data-name="Türker Proje GYO A.Ş.">
+                    <td><strong><a href="#" onclick="loadChart('TRALT'); return false;" class="stock-link" style="cursor: pointer;">TRALT</a></strong></td>
+                    <td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Türker Proje GYO A.Ş.">Türker Proje GYO A.Ş.</td>
+                    <td>52.65 TL</td>
+                    <td><span class="signal-badge signal-strong-buy">GÜÇLÜ AL</span></td>
+                    <td>82%</td>
+                    <td class="price-changes"><span class="price-change-item" title="Günlük Hacim: 78,770,148"><span class="price-change-label">1g:</span> <span class="negative">▼1.6%</span></span> <span class="price-change-item" title="Günlük Hacim: 78,770,148"><span class="price-change-label">5g:</span> <span class="positive">▲14.8%</span></span> <span class="price-change-item" title="Günlük Hacim: 78,770,148"><span class="price-change-label">1a:</span> <span class="positive">▲10.6%</span></span> <span class="price-change-item" title="Günlük Hacim: 78,770,148"><span class="price-change-label">3a:</span> <span class="positive">▲41.1%</span></span> </td>
                 </tr>
                 <tr class="signal-strong-buy" data-symbol="TRENJ" data-name="Trend Enerji A.Ş.">
                     <td><strong><a href="#" onclick="loadChart('TRENJ'); return false;" class="stock-link" style="cursor: pointer;">TRENJ</a></strong></td>
@@ -530,14 +538,6 @@ document.addEventListener('DOMContentLoaded', function() {    var modal = docume
                     <td><span class="signal-badge signal-buy">AL</span></td>
                     <td>67%</td>
                     <td class="price-changes"><span class="price-change-item" title="Günlük Hacim: 182,779,944"><span class="price-change-label">1g:</span> <span class="positive">▲1.3%</span></span> <span class="price-change-item" title="Günlük Hacim: 182,779,944"><span class="price-change-label">5g:</span> <span class="positive">▲8.5%</span></span> <span class="price-change-item" title="Günlük Hacim: 182,779,944"><span class="price-change-label">1a:</span> <span class="positive">▲20.0%</span></span> <span class="price-change-item" title="Günlük Hacim: 182,779,944"><span class="price-change-label">3a:</span> <span class="positive">▲29.1%</span></span> </td>
-                </tr>
-                <tr class="signal-buy" data-symbol="GUBRF" data-name="Gübre Fabrikaları A.Ş.">
-                    <td><strong><a href="#" onclick="loadChart('GUBRF'); return false;" class="stock-link" style="cursor: pointer;">GUBRF</a></strong></td>
-                    <td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Gübre Fabrikaları A.Ş.">Gübre Fabrikaları A.Ş.</td>
-                    <td>540.50 TL</td>
-                    <td><span class="signal-badge signal-buy">AL</span></td>
-                    <td>67%</td>
-                    <td class="price-changes"><span class="price-change-item" title="Günlük Hacim: 2,539,684"><span class="price-change-label">1g:</span> <span class="negative">▼2.9%</span></span> <span class="price-change-item" title="Günlük Hacim: 2,539,684"><span class="price-change-label">5g:</span> <span class="positive">▲5.9%</span></span> <span class="price-change-item" title="Günlük Hacim: 2,539,684"><span class="price-change-label">1a:</span> <span class="positive">▲47.2%</span></span> <span class="price-change-item" title="Günlük Hacim: 2,539,684"><span class="price-change-label">3a:</span> <span class="positive">▲61.1%</span></span> </td>
                 </tr>
                 <tr class="signal-buy" data-symbol="HEKTS" data-name="Hektaş Ticaret A.Ş.">
                     <td><strong><a href="#" onclick="loadChart('HEKTS'); return false;" class="stock-link" style="cursor: pointer;">HEKTS</a></strong></td>
@@ -737,7 +737,7 @@ document.addEventListener('DOMContentLoaded', function() {    var modal = docume
                     <td>45.46 TL</td>
                     <td><span class="signal-badge signal-hold">TUT</span></td>
                     <td>25%</td>
-                    <td class="price-changes"><span class="price-change-item" title="Günlük Hacim: 3,985,175"><span class="price-change-label">1g:</span> <span class="positive">▲2.4%</span></span> <span class="price-change-item" title="Günlük Hacim: 3,985,175"><span class="price-change-label">5g:</span> <span class="positive">▲9.3%</span></span> <span class="price-change-item" title="Günlük Hacim: 3,985,175"><span class="price-change-label">1a:</span> <span class="positive">▲7.5%</span></span> <span class="price-change-item" title="Günlük Hacim: 3,985,175"><span class="price-change-label">3a:</span> <span class="positive">▲44.5%</span></span> </td>
+                    <td class="price-changes"><span class="price-change-item" title="Günlük Hacim: 3,353,604"><span class="price-change-label">1g:</span> <span class="positive">▲1.3%</span></span> <span class="price-change-item" title="Günlük Hacim: 3,353,604"><span class="price-change-label">5g:</span> <span class="positive">▲8.3%</span></span> <span class="price-change-item" title="Günlük Hacim: 3,353,604"><span class="price-change-label">1a:</span> <span class="positive">▲7.1%</span></span> <span class="price-change-item" title="Günlük Hacim: 3,353,604"><span class="price-change-label">3a:</span> <span class="positive">▲43.4%</span></span> </td>
                 </tr>
                 <tr class="signal-hold" data-symbol="RALYH" data-name="Ral Yatırım Holding A.Ş.">
                     <td><strong><a href="#" onclick="loadChart('RALYH'); return false;" class="stock-link" style="cursor: pointer;">RALYH</a></strong></td>
@@ -755,13 +755,13 @@ document.addEventListener('DOMContentLoaded', function() {    var modal = docume
                     <td>25%</td>
                     <td class="price-changes"><span class="price-change-item" title="Günlük Hacim: 3,307,108"><span class="price-change-label">1g:</span> <span class="positive">▲0.6%</span></span> <span class="price-change-item" title="Günlük Hacim: 3,307,108"><span class="price-change-label">5g:</span> <span class="positive">▲2.3%</span></span> <span class="price-change-item" title="Günlük Hacim: 3,307,108"><span class="price-change-label">1a:</span> <span class="positive">▲13.2%</span></span> <span class="price-change-item" title="Günlük Hacim: 3,307,108"><span class="price-change-label">3a:</span> <span class="positive">▲38.8%</span></span> </td>
                 </tr>
-                <tr class="signal-strong-sell" data-symbol="KLRHO" data-name="Kiler Holding A.Ş.">
+                <tr class="signal-sell" data-symbol="KLRHO" data-name="Kiler Holding A.Ş.">
                     <td><strong><a href="#" onclick="loadChart('KLRHO'); return false;" class="stock-link" style="cursor: pointer;">KLRHO</a></strong></td>
                     <td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Kiler Holding A.Ş.">Kiler Holding A.Ş.</td>
                     <td>432.00 TL</td>
-                    <td><span class="signal-badge signal-strong-sell">GÜÇLÜ SAT</span></td>
-                    <td>90%</td>
-                    <td class="price-changes"><span class="price-change-item" title="Günlük Hacim: 7,230,871"><span class="price-change-label">1g:</span> <span class="negative">▼7.5%</span></span> <span class="price-change-item" title="Günlük Hacim: 7,230,871"><span class="price-change-label">5g:</span> <span class="negative">▼25.8%</span></span> <span class="price-change-item" title="Günlük Hacim: 7,230,871"><span class="price-change-label">1a:</span> <span class="positive">▲20.0%</span></span> <span class="price-change-item" title="Günlük Hacim: 7,230,871"><span class="price-change-label">3a:</span> <span class="positive">▲194.9%</span></span> </td>
+                    <td><span class="signal-badge signal-sell">SAT</span></td>
+                    <td>67%</td>
+                    <td class="price-changes"><span class="price-change-item" title="Günlük Hacim: 5,674,865"><span class="price-change-label">1g:</span> <span class="negative">▼7.5%</span></span> <span class="price-change-item" title="Günlük Hacim: 5,674,865"><span class="price-change-label">5g:</span> <span class="negative">▼24.3%</span></span> <span class="price-change-item" title="Günlük Hacim: 5,674,865"><span class="price-change-label">1a:</span> <span class="positive">▲18.6%</span></span> <span class="price-change-item" title="Günlük Hacim: 5,674,865"><span class="price-change-label">3a:</span> <span class="positive">▲186.7%</span></span> </td>
                 </tr>
                 <tr class="signal-strong-sell" data-symbol="PASEU" data-name="Pasifik Eurasia Lojistik A.Ş.">
                     <td><strong><a href="#" onclick="loadChart('PASEU'); return false;" class="stock-link" style="cursor: pointer;">PASEU</a></strong></td>
