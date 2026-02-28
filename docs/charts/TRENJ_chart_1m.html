@@ -18,81 +18,75 @@
     </div>
     <script>
         // Data preparation (daily aggregated)
-        var dates = ['2026-01-29', '2026-01-30', '2026-02-02', '2026-02-03', '2026-02-04', '2026-02-05', '2026-02-06', '2026-02-09', '2026-02-10', '2026-02-11', '2026-02-12', '2026-02-13', '2026-02-16', '2026-02-17', '2026-02-18', '2026-02-19', '2026-02-20', '2026-02-23', '2026-02-24', '2026-02-25', '2026-02-26', '2026-02-27']
+        var dates = ['2026-01-29', '2026-01-30', '2026-02-03', '2026-02-04', '2026-02-05', '2026-02-06', '2026-02-09', '2026-02-10', '2026-02-11', '2026-02-12', '2026-02-13', '2026-02-16', '2026-02-17', '2026-02-18', '2026-02-19', '2026-02-20', '2026-02-23', '2026-02-24', '2026-02-25', '2026-02-26', '2026-02-27']
 
-        var prices = [118.20, 107.70, 101.20, 101.50, 102.30, 100.20, 99.15, 102.30, 105.20, 106.00, 108.10, 107.70, 109.10, 109.00, 110.70, 109.00, 113.60, 117.50, 115.70, 114.40, 117.10, 121.90];
+        var prices = [118.10, 107.40, 102.30, 103.90, 100.50, 98.00, 102.00, 105.80, 105.70, 108.30, 107.50, 108.70, 108.50, 110.70, 109.20, 113.60, 117.10, 114.70, 114.50, 117.50, 121.90];
 
-        var opens = [116.00, 115.50, 98.60, 106.00, 105.00, 101.30, 100.50, 102.00, 101.90, 105.60, 107.00, 106.60, 107.80, 109.20, 109.60, 112.00, 110.50, 117.00, 117.10, 117.00, 114.30, 118.10];
+        var opens = [116.00, 115.50, 106.00, 105.00, 101.30, 100.50, 102.00, 101.90, 105.60, 107.00, 106.60, 107.80, 109.20, 109.60, 112.00, 110.50, 117.00, 117.10, 117.00, 114.30, 118.10];
 
-        var highs = [121.40, 115.50, 103.90, 106.40, 108.20, 105.00, 100.50, 102.70, 107.00, 107.40, 111.80, 111.00, 110.50, 109.60, 112.10, 112.60, 114.80, 119.10, 117.80, 118.50, 118.80, 121.90];
+        var highs = [121.40, 115.50, 106.40, 108.20, 105.00, 100.50, 102.70, 105.90, 107.40, 111.80, 111.00, 110.50, 109.60, 112.10, 112.60, 114.60, 119.10, 117.80, 118.50, 118.80, 121.90];
 
-        var lows = [115.80, 106.50, 98.60, 100.70, 100.70, 99.70, 97.60, 101.20, 100.50, 103.90, 106.60, 106.20, 107.50, 106.90, 109.10, 108.60, 109.60, 115.00, 112.80, 112.30, 113.40, 116.70];
+        var lows = [115.80, 106.50, 101.50, 103.40, 99.85, 97.60, 101.20, 100.50, 103.90, 106.60, 106.20, 107.10, 106.90, 109.10, 108.90, 109.60, 115.00, 112.80, 112.30, 113.40, 116.70];
 
-        var volumes = [6352946, 4377477, 2651548, 3607552, 2459962, 2468173, 1786532, 1350354, 2958240, 1924854, 2108372, 1853268, 1823806, 1718482, 2182023, 2015672, 2292259, 3688049, 1819979, 3732807, 3058981, 2248835];
+        var volumes = [5845534, 5262728, 3757941, 3157601, 2518684, 1736493, 1540889, 2879294, 2124368, 3181343, 2278151, 1929909, 1893392, 2360196, 2238967, 2216859, 3679037, 2260727, 4072126, 3269426, 2943581];
 
-        var dailyChanges = [1.90, -8.88, -6.04, 0.30, 0.79, -2.05, -1.05, 3.18, 2.83, 0.76, 1.98, -0.37, 1.30, -0.09, 1.56, -1.54, 4.22, 3.43, -1.53, -1.12, 2.36, 4.10];
+        var dailyChanges = [1.81, -9.06, -4.75, 1.56, -3.27, -2.49, 4.08, 3.73, -0.09, 2.46, -0.74, 1.12, -0.18, 2.03, -1.36, 4.03, 3.08, -2.05, -0.17, 2.62, 3.74];
 
-        var closingTimes = ['17:30', '17:30', '17:30', '17:30', '17:30', '17:30', '17:30', '17:30', '17:30', '17:30', '17:30', '17:30', '17:30', '17:30', '17:30', '17:30', '17:30', '17:30', '17:30', '17:30', '17:30', '18:00'];
+        var closingTimes = ['16:30', '16:30', '16:30', '16:30', '16:30', '16:30', '16:30', '16:30', '16:30', '16:30', '16:30', '16:30', '16:30', '16:30', '16:30', '16:30', '16:30', '16:30', '16:30', '16:30', '18:00'];
 
-        var signalTypes = ['', '', 'SAT (Skor: -5, 3 gösterge)', 'SAT (Skor: -6, 2 gösterge)', 'SAT (Skor: -4, 2 gösterge)', 'Güçlü SAT (Skor: -10, 4 gösterge)', 'SAT (Skor: -5, 3 gösterge)', 'Güçlü AL (Skor: 7, 3 gösterge)', 'Güçlü AL (Skor: 8, 3 gösterge)', 'Güçlü AL (Skor: 10, 3 gösterge)', 'Güçlü AL (Skor: 10, 3 gösterge)', '', '', '', 'AL (Skor: 6, 2 gösterge)', '', 'AL (Skor: 5, 2 gösterge)', 'AL (Skor: 8, 2 gösterge)', '', '', 'AL (Skor: 6, 2 gösterge)', 'Güçlü AL (Skor: 10, 3 gösterge)'];
+        var signalTypes = ['', '', 'Güçlü SAT (Skor: -8, 4 gösterge)', 'Güçlü SAT (Skor: -12, 4 gösterge)', 'Güçlü SAT (Skor: -15, 5 gösterge)', 'SAT (Skor: -5, 3 gösterge)', '', 'Güçlü AL (Skor: 9, 4 gösterge)', 'Güçlü AL (Skor: 8, 3 gösterge)', 'Güçlü AL (Skor: 10, 3 gösterge)', '', '', '', 'AL (Skor: 6, 2 gösterge)', '', 'AL (Skor: 5, 2 gösterge)', 'Güçlü AL (Skor: 10, 3 gösterge)', '', '', 'AL (Skor: 5, 2 gösterge)', 'Güçlü AL (Skor: 10, 3 gösterge)'];
 
-        var dayNames = ['Perşembe', 'Cuma', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'];
+        var dayNames = ['Perşembe', 'Cuma', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'];
 
-        var sma20 = [117.76, 113.34, 106.52, 103.28, 103.85, 103.18, 100.63, 100.24, 102.33, 104.40, 106.76, 108.09, 108.73, 108.65, 109.64, 110.42, 111.21, 113.92, 115.64, 115.15, 115.62, 117.99];
+        var sma20 = [117.95, 113.76, 108.60, 105.10, 103.58, 101.14, 100.37, 101.75, 103.96, 106.41, 107.94, 108.60, 108.54, 109.64, 110.30, 111.22, 113.45, 115.21, 115.30, 115.44, 117.90];
 
-        var sma50 = [117.69, 116.49, 113.91, 110.77, 108.17, 105.54, 102.75, 102.16, 102.25, 102.49, 103.32, 104.86, 106.49, 107.64, 108.74, 109.29, 109.96, 111.48, 112.62, 113.52, 114.54, 116.33];
+        var sma50 = [117.58, 116.35, 114.59, 112.45, 109.59, 106.39, 103.94, 102.67, 102.77, 103.34, 104.22, 105.80, 107.01, 108.35, 109.14, 109.86, 111.11, 112.12, 113.13, 114.11, 115.92];
 
-        var ema12 = [117.77, 110.26, 103.80, 103.39, 103.94, 102.08, 99.41, 101.32, 103.52, 105.26, 107.39, 108.02, 108.88, 108.69, 110.45, 110.08, 112.11, 115.78, 115.22, 114.75, 116.40, 119.26];
+        var ema12 = [117.79, 110.73, 105.55, 104.80, 102.65, 99.57, 101.18, 103.18, 105.04, 107.22, 108.03, 108.84, 108.63, 110.39, 110.27, 111.89, 115.41, 115.03, 114.77, 116.27, 119.24];
 
-        var rsi = [51.55, 32.12, 30.64, 36.82, 41.37, 36.48, 39.57, 55.42, 65.58, 61.03, 60.79, 53.16, 57.08, 54.94, 58.61, 44.46, 63.60, 69.49, 56.69, 49.15, 58.03, 67.96];
+        var rsi = [51.17, 31.87, 27.40, 38.77, 32.99, 30.06, 50.43, 66.97, 59.34, 61.56, 52.59, 54.85, 52.22, 58.67, 46.31, 63.15, 67.71, 53.01, 50.49, 60.19, 67.92];
 
         // BUY/SELL signals (4 types)
         var alDates = [], alPrices = [], alTexts = [];
         var strongAlDates = [], strongAlPrices = [], strongAlTexts = [];
         var satDates = [], satPrices = [], satTexts = [];
         var strongSatDates = [], strongSatPrices = [], strongSatTexts = [];
-        satDates.push('2026-02-02');
-        satPrices.push(101.20);
-        satTexts.push('<b>Tarih: 2026-02-02 (Pazartesi)</b><br>Açılış: 98.60 TL<br>Kapanış: 101.20 TL<br>Günlük Değişim: -6.04%<br>Kapanış Saati: 17:30<br>Sinyal: SAT (Skor: -5, 3 gösterge)');
-        satDates.push('2026-02-03');
-        satPrices.push(101.50);
-        satTexts.push('<b>Tarih: 2026-02-03 (Salı)</b><br>Açılış: 106.00 TL<br>Kapanış: 101.50 TL<br>Günlük Değişim: 0.30%<br>Kapanış Saati: 17:30<br>Sinyal: SAT (Skor: -6, 2 gösterge)');
-        satDates.push('2026-02-04');
-        satPrices.push(102.30);
-        satTexts.push('<b>Tarih: 2026-02-04 (Çarşamba)</b><br>Açılış: 105.00 TL<br>Kapanış: 102.30 TL<br>Günlük Değişim: 0.79%<br>Kapanış Saati: 17:30<br>Sinyal: SAT (Skor: -4, 2 gösterge)');
+        strongSatDates.push('2026-02-03');
+        strongSatPrices.push(102.30);
+        strongSatTexts.push('<b>Tarih: 2026-02-03 (Salı)</b><br>Açılış: 106.00 TL<br>Kapanış: 102.30 TL<br>Günlük Değişim: -4.75%<br>Kapanış Saati: 16:30<br>Sinyal: Güçlü SAT (Skor: -8, 4 gösterge)');
+        strongSatDates.push('2026-02-04');
+        strongSatPrices.push(103.90);
+        strongSatTexts.push('<b>Tarih: 2026-02-04 (Çarşamba)</b><br>Açılış: 105.00 TL<br>Kapanış: 103.90 TL<br>Günlük Değişim: 1.56%<br>Kapanış Saati: 16:30<br>Sinyal: Güçlü SAT (Skor: -12, 4 gösterge)');
         strongSatDates.push('2026-02-05');
-        strongSatPrices.push(100.20);
-        strongSatTexts.push('<b>Tarih: 2026-02-05 (Perşembe)</b><br>Açılış: 101.30 TL<br>Kapanış: 100.20 TL<br>Günlük Değişim: -2.05%<br>Kapanış Saati: 17:30<br>Sinyal: Güçlü SAT (Skor: -10, 4 gösterge)');
+        strongSatPrices.push(100.50);
+        strongSatTexts.push('<b>Tarih: 2026-02-05 (Perşembe)</b><br>Açılış: 101.30 TL<br>Kapanış: 100.50 TL<br>Günlük Değişim: -3.27%<br>Kapanış Saati: 16:30<br>Sinyal: Güçlü SAT (Skor: -15, 5 gösterge)');
         satDates.push('2026-02-06');
-        satPrices.push(99.15);
-        satTexts.push('<b>Tarih: 2026-02-06 (Cuma)</b><br>Açılış: 100.50 TL<br>Kapanış: 99.15 TL<br>Günlük Değişim: -1.05%<br>Kapanış Saati: 17:30<br>Sinyal: SAT (Skor: -5, 3 gösterge)');
-        strongAlDates.push('2026-02-09');
-        strongAlPrices.push(102.30);
-        strongAlTexts.push('<b>Tarih: 2026-02-09 (Pazartesi)</b><br>Açılış: 102.00 TL<br>Kapanış: 102.30 TL<br>Günlük Değişim: 3.18%<br>Kapanış Saati: 17:30<br>Sinyal: Güçlü AL (Skor: 7, 3 gösterge)');
+        satPrices.push(98.00);
+        satTexts.push('<b>Tarih: 2026-02-06 (Cuma)</b><br>Açılış: 100.50 TL<br>Kapanış: 98.00 TL<br>Günlük Değişim: -2.49%<br>Kapanış Saati: 16:30<br>Sinyal: SAT (Skor: -5, 3 gösterge)');
         strongAlDates.push('2026-02-10');
-        strongAlPrices.push(105.20);
-        strongAlTexts.push('<b>Tarih: 2026-02-10 (Salı)</b><br>Açılış: 101.90 TL<br>Kapanış: 105.20 TL<br>Günlük Değişim: 2.83%<br>Kapanış Saati: 17:30<br>Sinyal: Güçlü AL (Skor: 8, 3 gösterge)');
+        strongAlPrices.push(105.80);
+        strongAlTexts.push('<b>Tarih: 2026-02-10 (Salı)</b><br>Açılış: 101.90 TL<br>Kapanış: 105.80 TL<br>Günlük Değişim: 3.73%<br>Kapanış Saati: 16:30<br>Sinyal: Güçlü AL (Skor: 9, 4 gösterge)');
         strongAlDates.push('2026-02-11');
-        strongAlPrices.push(106.00);
-        strongAlTexts.push('<b>Tarih: 2026-02-11 (Çarşamba)</b><br>Açılış: 105.60 TL<br>Kapanış: 106.00 TL<br>Günlük Değişim: 0.76%<br>Kapanış Saati: 17:30<br>Sinyal: Güçlü AL (Skor: 10, 3 gösterge)');
+        strongAlPrices.push(105.70);
+        strongAlTexts.push('<b>Tarih: 2026-02-11 (Çarşamba)</b><br>Açılış: 105.60 TL<br>Kapanış: 105.70 TL<br>Günlük Değişim: -0.09%<br>Kapanış Saati: 16:30<br>Sinyal: Güçlü AL (Skor: 8, 3 gösterge)');
         strongAlDates.push('2026-02-12');
-        strongAlPrices.push(108.10);
-        strongAlTexts.push('<b>Tarih: 2026-02-12 (Perşembe)</b><br>Açılış: 107.00 TL<br>Kapanış: 108.10 TL<br>Günlük Değişim: 1.98%<br>Kapanış Saati: 17:30<br>Sinyal: Güçlü AL (Skor: 10, 3 gösterge)');
+        strongAlPrices.push(108.30);
+        strongAlTexts.push('<b>Tarih: 2026-02-12 (Perşembe)</b><br>Açılış: 107.00 TL<br>Kapanış: 108.30 TL<br>Günlük Değişim: 2.46%<br>Kapanış Saati: 16:30<br>Sinyal: Güçlü AL (Skor: 10, 3 gösterge)');
         alDates.push('2026-02-18');
         alPrices.push(110.70);
-        alTexts.push('<b>Tarih: 2026-02-18 (Çarşamba)</b><br>Açılış: 109.60 TL<br>Kapanış: 110.70 TL<br>Günlük Değişim: 1.56%<br>Kapanış Saati: 17:30<br>Sinyal: AL (Skor: 6, 2 gösterge)');
+        alTexts.push('<b>Tarih: 2026-02-18 (Çarşamba)</b><br>Açılış: 109.60 TL<br>Kapanış: 110.70 TL<br>Günlük Değişim: 2.03%<br>Kapanış Saati: 16:30<br>Sinyal: AL (Skor: 6, 2 gösterge)');
         alDates.push('2026-02-20');
         alPrices.push(113.60);
-        alTexts.push('<b>Tarih: 2026-02-20 (Cuma)</b><br>Açılış: 110.50 TL<br>Kapanış: 113.60 TL<br>Günlük Değişim: 4.22%<br>Kapanış Saati: 17:30<br>Sinyal: AL (Skor: 5, 2 gösterge)');
-        alDates.push('2026-02-23');
-        alPrices.push(117.50);
-        alTexts.push('<b>Tarih: 2026-02-23 (Pazartesi)</b><br>Açılış: 117.00 TL<br>Kapanış: 117.50 TL<br>Günlük Değişim: 3.43%<br>Kapanış Saati: 17:30<br>Sinyal: AL (Skor: 8, 2 gösterge)');
+        alTexts.push('<b>Tarih: 2026-02-20 (Cuma)</b><br>Açılış: 110.50 TL<br>Kapanış: 113.60 TL<br>Günlük Değişim: 4.03%<br>Kapanış Saati: 16:30<br>Sinyal: AL (Skor: 5, 2 gösterge)');
+        strongAlDates.push('2026-02-23');
+        strongAlPrices.push(117.10);
+        strongAlTexts.push('<b>Tarih: 2026-02-23 (Pazartesi)</b><br>Açılış: 117.00 TL<br>Kapanış: 117.10 TL<br>Günlük Değişim: 3.08%<br>Kapanış Saati: 16:30<br>Sinyal: Güçlü AL (Skor: 10, 3 gösterge)');
         alDates.push('2026-02-26');
-        alPrices.push(117.10);
-        alTexts.push('<b>Tarih: 2026-02-26 (Perşembe)</b><br>Açılış: 114.30 TL<br>Kapanış: 117.10 TL<br>Günlük Değişim: 2.36%<br>Kapanış Saati: 17:30<br>Sinyal: AL (Skor: 6, 2 gösterge)');
+        alPrices.push(117.50);
+        alTexts.push('<b>Tarih: 2026-02-26 (Perşembe)</b><br>Açılış: 114.30 TL<br>Kapanış: 117.50 TL<br>Günlük Değişim: 2.62%<br>Kapanış Saati: 16:30<br>Sinyal: AL (Skor: 5, 2 gösterge)');
         strongAlDates.push('2026-02-27');
         strongAlPrices.push(121.90);
-        strongAlTexts.push('<b>Tarih: 2026-02-27 (Cuma)</b><br>Açılış: 118.10 TL<br>Kapanış: 121.90 TL<br>Günlük Değişim: 4.10%<br>Kapanış Saati: 18:00<br>Sinyal: Güçlü AL (Skor: 10, 3 gösterge)');
+        strongAlTexts.push('<b>Tarih: 2026-02-27 (Cuma)</b><br>Açılış: 118.10 TL<br>Kapanış: 121.90 TL<br>Günlük Değişim: 3.74%<br>Kapanış Saati: 18:00<br>Sinyal: Güçlü AL (Skor: 10, 3 gösterge)');
 
         // Build custom data for hover template
         var customdata = [];
