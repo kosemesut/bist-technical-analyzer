@@ -16,7 +16,7 @@
 document.addEventListener('DOMContentLoaded', function() {    var modal = document.getElementById('imageModal');    var modalImg = document.getElementById('modalImage');    var closeBtn = document.getElementsByClassName('modal-close')[0];    var imgs = document.getElementsByClassName('chart-img');    for (var i = 0; i < imgs.length; i++) {        imgs[i].onclick = function() {            modal.style.display = 'block';            modalImg.src = this.src;        };    }    if(closeBtn) {        closeBtn.onclick = function() {            modal.style.display = 'none';        };    }    if(modal) {        modal.onclick = function(e) {            if (e.target === modal) {                modal.style.display = 'none';            }        };    }    setupSearch();});function setupSearch() {    var searchBox = document.getElementById('stockSearch');    var tableBody = document.getElementById('signalsTableBody');    if (!searchBox || !tableBody) return;    searchBox.addEventListener('keyup', function() {        var query = searchBox.value.toLowerCase();        var rows = tableBody.querySelectorAll('tr');        rows.forEach(function(row) {            var symbol = row.cells[0] ? row.cells[0].textContent.toLowerCase() : '';            var name = row.cells[1] ? row.cells[1].textContent.toLowerCase() : '';            row.style.display = (symbol.includes(query) || name.includes(query)) ? '' : 'none';        });    });}function loadChart(symbol) {    var chartViewer = document.getElementById('dynamicChartViewer');    if (!chartViewer) return;    var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);    var chartSuffix = isMobile ? '_1m' : '';    var iframe = chartViewer.querySelector('iframe');    if (iframe) {        iframe.src = 'charts/' + symbol + '_chart' + chartSuffix + '.html';        chartViewer.style.display = 'block';        chartViewer.scrollIntoView({behavior: 'smooth'});    }}</script>
 <div class="container" id="top">
     <h1>BİST Teknik Analiz Raporu</h1>
-    <div class="timestamp">Oluşturulma Tarihi: 2026-03-11 00:58:10 TRT</div>
+    <div class="timestamp">Oluşturulma Tarihi: 2026-03-11 01:37:18 TRT</div>
     <section class="summary">
         <h2>📋 İstenen Hisselerin Sinyalleri</h2>
         <div style="margin-bottom: 20px;">
@@ -91,14 +91,6 @@ document.addEventListener('DOMContentLoaded', function() {    var modal = docume
                     <td>86%</td>
                     <td class="price-changes"><span class="price-change-item" title="Günlük Hacim: 8,130,826"><span class="price-change-label">1g:</span> <span class="positive">▲5.9%</span></span> <span class="price-change-item" title="Günlük Hacim: 8,130,826"><span class="price-change-label">5g:</span> <span class="positive">▲12.7%</span></span> <span class="price-change-item" title="Günlük Hacim: 8,130,826"><span class="price-change-label">1a:</span> <span class="negative">▼7.2%</span></span> <span class="price-change-item" title="Günlük Hacim: 8,130,826"><span class="price-change-label">3a:</span> <span class="positive">▲22.7%</span></span> </td>
                 </tr>
-                <tr class="signal-strong-buy" data-symbol="VAKBN" data-name="Vakıfbank A.Ş.">
-                    <td><strong><a href="#" onclick="loadChart('VAKBN'); return false;" class="stock-link" style="cursor: pointer;">VAKBN</a></strong></td>
-                    <td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Vakıfbank A.Ş.">Vakıfbank A.Ş.</td>
-                    <td>35.86 TL</td>
-                    <td><span class="signal-badge signal-strong-buy">GÜÇLÜ AL</span></td>
-                    <td>86%</td>
-                    <td class="price-changes"><span class="price-change-item" title="Günlük Hacim: 58,609,586"><span class="price-change-label">1g:</span> <span class="positive">▲5.7%</span></span> <span class="price-change-item" title="Günlük Hacim: 58,609,586"><span class="price-change-label">5g:</span> <span class="negative">▼2.7%</span></span> <span class="price-change-item" title="Günlük Hacim: 58,609,586"><span class="price-change-label">1a:</span> <span class="negative">▼2.2%</span></span> <span class="price-change-item" title="Günlük Hacim: 58,609,586"><span class="price-change-label">3a:</span> <span class="positive">▲22.7%</span></span> </td>
-                </tr>
                 <tr class="signal-strong-buy" data-symbol="ASTOR" data-name="Astor Enerji A.Ş.">
                     <td><strong><a href="#" onclick="loadChart('ASTOR'); return false;" class="stock-link" style="cursor: pointer;">ASTOR</a></strong></td>
                     <td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Astor Enerji A.Ş.">Astor Enerji A.Ş.</td>
@@ -130,6 +122,14 @@ document.addEventListener('DOMContentLoaded', function() {    var modal = docume
                     <td><span class="signal-badge signal-strong-buy">GÜÇLÜ AL</span></td>
                     <td>82%</td>
                     <td class="price-changes"><span class="price-change-item" title="Günlük Hacim: 9,989,925"><span class="price-change-label">1g:</span> <span class="negative">▼0.1%</span></span> <span class="price-change-item" title="Günlük Hacim: 9,989,925"><span class="price-change-label">5g:</span> <span class="negative">▼7.2%</span></span> <span class="price-change-item" title="Günlük Hacim: 9,989,925"><span class="price-change-label">1a:</span> <span class="negative">▼23.0%</span></span> <span class="price-change-item" title="Günlük Hacim: 9,989,925"><span class="price-change-label">3a:</span> <span class="negative">▼19.3%</span></span> </td>
+                </tr>
+                <tr class="signal-strong-buy" data-symbol="VAKBN" data-name="Vakıfbank A.Ş.">
+                    <td><strong><a href="#" onclick="loadChart('VAKBN'); return false;" class="stock-link" style="cursor: pointer;">VAKBN</a></strong></td>
+                    <td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Vakıfbank A.Ş.">Vakıfbank A.Ş.</td>
+                    <td>35.86 TL</td>
+                    <td><span class="signal-badge signal-strong-buy">GÜÇLÜ AL</span></td>
+                    <td>82%</td>
+                    <td class="price-changes"><span class="price-change-item" title="Günlük Hacim: 43,646,933"><span class="price-change-label">1g:</span> <span class="positive">▲1.9%</span></span> <span class="price-change-item" title="Günlük Hacim: 43,646,933"><span class="price-change-label">5g:</span> <span class="negative">▼1.2%</span></span> <span class="price-change-item" title="Günlük Hacim: 43,646,933"><span class="price-change-label">1a:</span> <span class="negative">▼2.3%</span></span> <span class="price-change-item" title="Günlük Hacim: 43,646,933"><span class="price-change-label">3a:</span> <span class="positive">▲22.1%</span></span> </td>
                 </tr>
                 <tr class="signal-buy" data-symbol="ARCLK" data-name="Arçelik A.Ş.">
                     <td><strong><a href="#" onclick="loadChart('ARCLK'); return false;" class="stock-link" style="cursor: pointer;">ARCLK</a></strong></td>
